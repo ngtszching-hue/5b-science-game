@@ -1,0 +1,2530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Primary 5A Science Adventure — Interactive Revision Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #eef6ff 0%, #f5f3ff 50%, #ecfdf5 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    h1, h2, h3, .font-display {
+      font-family: 'Fredoka', sans-serif;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.94); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .animate-shake {
+      animation: shake 0.35s ease-in-out;
+    }
+    .game-card {
+      box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.1), 0 8px 10px -6px rgba(59, 130, 246, 0.06);
+    }
+    .btn-3d {
+      transition: transform 0.1s ease, background-color 0.15s ease, border-color 0.15s ease;
+      border-bottom-width: 4px;
+      min-height: 48px;
+      touch-action: manipulation;
+    }
+    .btn-3d:active:not(:disabled) {
+      transform: translateY(2px);
+      border-bottom-width: 2px;
+    }
+    .touch-target {
+      min-height: 48px;
+      touch-action: manipulation;
+    }
+    input.student-input {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased flex flex-col">
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Top Navigation Header -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+    <div class="max-w-5xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 sm:gap-2.5 cursor-pointer min-w-0" onclick="goHome()">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg sm:text-xl shadow-md shrink-0">
+          🔬
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-base sm:text-xl font-bold text-slate-800 leading-tight truncate">Primary 5A Science Adventure</h1>
+          <p class="text-[11px] sm:text-xs text-slate-500 hidden sm:block">Interactive Revision Lab • Units 1 – 3 (Ch.1 – Ch.5)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-end">
+        <!-- Student Identity Pill in Header -->
+        <div id="header-student-pill" class="hidden sm:flex items-center gap-1.5 bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 rounded-full text-indigo-800 font-bold text-xs max-w-[190px] truncate" title="Student Identity">
+          <span>🪪</span>
+          <span id="header-student-text" class="truncate">Explorer</span>
+        </div>
+
+        <!-- Discovered Clues Pill -->
+        <button onclick="openStudyModal('all')" class="flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1.5 rounded-full text-emerald-700 font-semibold text-xs sm:text-sm transition" title="Open Junior Scientist Discovery Log & Flash-Notes">
+          <span>🧭</span>
+          <span id="mastery-pill-display">0%</span>
+        </button>
+
+        <!-- Total Stars Pill -->
+        <div class="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-full text-amber-700 font-semibold text-xs sm:text-sm" title="Explorer Stars Collected">
+          <span>⭐</span>
+          <span id="total-stars-display">0 / 18</span>
+        </div>
+
+        <!-- Sound Toggle -->
+        <button id="sound-toggle" onclick="toggleSound()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition text-sm sm:text-base" title="Toggle Sound">
+          🔊
+        </button>
+
+        <!-- Home Button (visible during gameplay) -->
+        <button id="home-btn" onclick="confirmQuit()" class="hidden px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition">
+          🏕️ Base Camp
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main id="app-container" class="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-4 py-5 sm:py-8">
+    <!-- Views injected dynamically via JS -->
+  </main>
+
+  <!-- Floating Toast Notification (for locked stage hints) -->
+  <div id="toast-banner" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 hidden items-center gap-2.5 bg-slate-900/95 text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-700 text-xs sm:text-sm font-semibold max-w-[92vw] animate-pop">
+    <span id="toast-icon" class="text-lg">🔒</span>
+    <span id="toast-text">Complete the previous stage first!</span>
+  </div>
+
+  <!-- Confirmation Modal (replaces alert/confirm) -->
+  <div id="custom-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-pop">
+      <div id="modal-icon" class="text-4xl mb-3 text-center">🤔</div>
+      <h3 id="modal-title" class="text-xl font-bold text-center text-slate-800 mb-2">Leave Mission?</h3>
+      <p id="modal-body" class="text-slate-600 text-center text-sm mb-6">Your current mission progress will be lost if you return to the Chapter Hub.</p>
+      <div class="flex gap-3 justify-center">
+        <button id="modal-cancel" onclick="closeModal()" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition touch-target">
+          Keep Playing
+        </button>
+        <button id="modal-confirm" class="flex-1 py-2.5 px-4 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-semibold transition touch-target">
+          Return to Hub
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Teacher Unlock Modal (5-tap shortcut on 'Junior Scientist Revision Quest') -->
+  <div id="teacher-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-indigo-100 animate-pop space-y-4">
+      <div class="text-center space-y-1">
+        <div class="text-4xl">🔑</div>
+        <h3 class="text-xl font-bold text-slate-800">Teacher Stage Unlock</h3>
+        <p class="text-xs text-slate-500">Enter the teacher passcode to unlock all 5 stages and the Final Mega Quest immediately.</p>
+      </div>
+      <div class="space-y-2">
+        <input id="teacher-passcode-input" type="password" inputmode="numeric" maxlength="10" placeholder="Enter passcode..."
+          onkeydown="if(event.key==='Enter') submitTeacherUnlock()"
+          class="student-input w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none text-center font-bold tracking-widest text-base text-slate-800" />
+        <p id="teacher-passcode-error" class="hidden text-xs text-rose-600 font-semibold text-center">
+          Incorrect passcode. Please try again.
+        </p>
+      </div>
+      <div class="flex gap-2.5">
+        <button type="button" onclick="closeTeacherModal()" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition touch-target">
+          Cancel
+        </button>
+        <button type="button" onclick="submitTeacherUnlock()" class="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition touch-target">
+          Unlock All
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Study Notes & Mastery Tracker Modal -->
+  <div id="study-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-2 sm:p-4">
+    <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 animate-pop overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between gap-3 bg-slate-50">
+        <div>
+          <h3 class="text-lg sm:text-xl font-bold text-slate-800">🧭 Junior Scientist Discovery Log & Flash-Notes</h3>
+          <p class="text-xs text-slate-500">Explore fun science secrets from Ch.1–Ch.5 & track your unlocked discoveries</p>
+        </div>
+        <button onclick="closeStudyModal()" class="w-10 h-10 rounded-xl bg-white hover:bg-slate-200 border border-slate-200 text-slate-600 font-bold flex items-center justify-center shrink-0">
+          ✕
+        </button>
+      </div>
+
+      <!-- Chapter Filter Tabs -->
+      <div id="study-filter-tabs" class="px-4 py-2.5 bg-white border-b border-slate-100 flex gap-1.5 overflow-x-auto shrink-0">
+        <!-- Populated dynamically -->
+      </div>
+
+      <!-- Scrollable Notes & Mastery Content -->
+      <div id="study-modal-content" class="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. iOS-SAFE WEB AUDIO API SOUND EFFECTS (Zero external audio URLs)
+    // =========================================================================
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function getAudioContext() {
+      try {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) audioCtx = new AudioContextClass();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        return audioCtx;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'click') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(520, now);
+          osc.frequency.exponentialRampToValueAtTime(680, now + 0.06);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+          osc.start(now);
+          osc.stop(now + 0.06);
+        } else if (type === 'correct') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.08);
+          osc.frequency.setValueAtTime(783.99, now + 0.16);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+          osc.start(now);
+          osc.stop(now + 0.34);
+        } else if (type === 'wrong') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.linearRampToValueAtTime(150, now + 0.25);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+          osc.start(now);
+          osc.stop(now + 0.26);
+        } else if (type === 'victory') {
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((freq, idx) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'triangle';
+            o.connect(g);
+            g.connect(ctx.destination);
+            o.frequency.setValueAtTime(freq, now + idx * 0.1);
+            g.gain.setValueAtTime(0.13, now + idx * 0.1);
+            g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.35);
+            o.start(now + idx * 0.1);
+            o.stop(now + idx * 0.1 + 0.35);
+          });
+        }
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('sound-toggle');
+      if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇';
+      if (soundEnabled) playSound('click');
+    }
+
+    // =========================================================================
+    // 2. CHAPTERS & COMPLETE 37-QUESTION CURRICULUM BANK (Ch.1 - Ch.5)
+    // =========================================================================
+    const CHAPTERS = [
+      {
+        id: 'ch1',
+        stageNum: 1,
+        number: 'Chapter 1',
+        unit: 'Unit 1 • Secrets of the Human Body',
+        title: 'Breathing and Digestion',
+        emoji: '🫁',
+        color: 'from-rose-500 to-pink-600',
+        badgeBg: 'bg-rose-50 text-rose-700 border-rose-200',
+        description: 'Explore the 6 major body parts, respiratory gas exchange, breathing mechanics, and the digestive tract.'
+      },
+      {
+        id: 'ch2',
+        stageNum: 2,
+        number: 'Chapter 2',
+        unit: 'Unit 1 • Secrets of the Human Body',
+        title: 'Reproduction and Development',
+        emoji: '🌱',
+        color: 'from-purple-500 to-indigo-600',
+        badgeBg: 'bg-purple-50 text-purple-700 border-purple-200',
+        description: 'Discover reproductive organs, the 6 stages of growth, puberty changes, menstruation, and growth factors.'
+      },
+      {
+        id: 'ch3',
+        stageNum: 3,
+        number: 'Chapter 3',
+        unit: 'Unit 2 • Matter and Changes',
+        title: 'Properties of Air',
+        emoji: '💨',
+        color: 'from-sky-500 to-blue-600',
+        badgeBg: 'bg-sky-50 text-sky-700 border-sky-200',
+        description: 'Uncover air composition (4/5 nitrogen, 1/5 oxygen), air weight, atmospheric pressure, and sea-land breezes.'
+      },
+      {
+        id: 'ch4',
+        stageNum: 4,
+        number: 'Chapter 4',
+        unit: 'Unit 2 • Matter and Changes',
+        title: 'Reversible & Irreversible Changes',
+        emoji: '🔥',
+        color: 'from-amber-500 to-orange-600',
+        badgeBg: 'bg-amber-50 text-amber-800 border-amber-200',
+        description: 'Master water state changes, aluminium recycling, rusting conditions, and 4 rust prevention methods.'
+      },
+      {
+        id: 'ch5',
+        stageNum: 5,
+        number: 'Chapter 5',
+        unit: 'Unit 3 • World We Cannot See',
+        title: 'Microorganisms Under the Microscope',
+        emoji: '🦠',
+        color: 'from-emerald-500 to-teal-600',
+        badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        description: 'Compare viruses, bacteria, fungi, and algae, food fermentation, pathogens, probiotics, and safe antibiotic use.'
+      }
+    ];
+
+    const QUESTION_BANK = [
+      // ==================== CHAPTER 1: BREATHING & DIGESTION (8 Questions) ====================
+      {
+        id: 'ch1_q1',
+        chapter: 'ch1',
+        type: 'mcq',
+        prompt: 'Which structure separates the chest from the abdomen and helps the lungs breathe in and out?',
+        options: ['Diaphragm', 'Trachea', 'Oesophagus', 'Bronchi'],
+        answer: 0,
+        explanation: 'The diaphragm is a sheet of muscle that separates the chest from the abdomen and moves down when breathing in and up when breathing out.'
+      },
+      {
+        id: 'ch1_q2',
+        chapter: 'ch1',
+        type: 'mcq',
+        prompt: 'What is the main function of the lungs in the human respiratory system?',
+        options: [
+          'Transport oxygen from the air into the blood and carry away carbon dioxide',
+          'Mash up food and release digestive juices',
+          'Absorb water from leftover food to form faeces',
+          'Produce hormones that stimulate body growth'
+        ],
+        answer: 0,
+        explanation: 'The lungs take in oxygen from the air into the blood and carry away carbon dioxide from the blood to be breathed out.'
+      },
+      {
+        id: 'ch1_q3',
+        chapter: 'ch1',
+        type: 'sort',
+        prompt: 'Sort each body action into "Breathing In (Inhalation)" or "Breathing Out (Exhalation)".',
+        bins: ['Breathing In 🌬️', 'Breathing Out 💨'],
+        items: [
+          { text: 'Ribs move outwards', bin: 0 },
+          { text: 'Diaphragm moves downwards', bin: 0 },
+          { text: 'Chest expands', bin: 0 },
+          { text: 'Ribs move inwards', bin: 1 },
+          { text: 'Diaphragm moves upwards', bin: 1 },
+          { text: 'Chest contracts', bin: 1 }
+        ],
+        explanation: 'When breathing in, ribs move outwards, the diaphragm moves downwards, and the chest expands. When breathing out, the exact opposite occurs.'
+      },
+      {
+        id: 'ch1_q4',
+        chapter: 'ch1',
+        type: 'mcq',
+        prompt: 'Right after stopping exercise, how does the number of our breaths per minute change?',
+        options: [
+          'It increases right after exercise, and decreases gradually afterwards',
+          'It decreases immediately and stays low',
+          'It stays completely unchanged before and after exercise',
+          'It stops for a few seconds before returning to normal'
+        ],
+        answer: 0,
+        explanation: 'Right after stopping exercise, the number of breaths per minute increases to supply more oxygen, and then decreases gradually as we rest.'
+      },
+      {
+        id: 'ch1_q5',
+        chapter: 'ch1',
+        type: 'sort',
+        prompt: 'Classify these organs and symptoms into the correct 3 categories!',
+        bins: ['Respiratory System 🫁', 'Digestive Tract 🍎', 'Flu Symptoms 🤧'],
+        items: [
+          { text: 'Trachea & Bronchi', bin: 0 },
+          { text: 'Diaphragm', bin: 0 },
+          { text: 'Oesophagus', bin: 1 },
+          { text: 'Small & Large Intestine', bin: 1 },
+          { text: 'Coughing & Sore throat', bin: 2 },
+          { text: 'Runny nose', bin: 2 }
+        ],
+        explanation: 'Trachea, bronchi, and diaphragm belong to the respiratory system; oesophagus, small intestine, and large intestine are parts of the digestive tract; coughing, sore throat, and runny nose are flu symptoms of the respiratory tract.'
+      },
+      {
+        id: 'ch1_q6',
+        chapter: 'ch1',
+        type: 'sequence',
+        prompt: 'Trace the pathway of food through the human digestive system from start to finish!',
+        steps: [
+          'Mouth (teeth chew food and mix it with saliva)',
+          'Pharynx (food passes through into the oesophagus)',
+          'Oesophagus (transports food to the stomach)',
+          'Stomach (mashes food and releases digestive juices)',
+          'Small intestine (breaks down food completely and absorbs nutrients)',
+          'Large intestine & Anus (absorbs water, forms faeces, and removes them)'
+        ],
+        explanation: 'Food travels in order through the mouth → pharynx → oesophagus → stomach → small intestine → large intestine → anus.'
+      },
+      {
+        id: 'ch1_q7',
+        chapter: 'ch1',
+        type: 'mcq',
+        prompt: 'How does the digestive tract push food forwards along the tube?',
+        options: [
+          'Muscles behind the food contract while muscles in front relax',
+          'Muscles in front of the food contract while muscles behind relax',
+          'Air pressure from the lungs blows food downwards',
+          'Water from the large intestine washes the food down'
+        ],
+        answer: 0,
+        explanation: 'The muscles behind the food contract while the muscles in front of the food relax, squeezing and pushing the food forwards.'
+      },
+      {
+        id: 'ch1_q8',
+        chapter: 'ch1',
+        type: 'tf',
+        prompt: 'Eating very hot food quickly helps the stomach digest food faster and protects the digestive system.',
+        answer: false,
+        explanation: 'False! To protect our digestive system, we should eat regularly, chew and swallow slowly, have a balanced diet, and AVOID very hot food.'
+      },
+
+      // ==================== CHAPTER 2: REPRODUCTION & DEVELOPMENT (8 Questions) ====================
+      {
+        id: 'ch2_q1',
+        chapter: 'ch2',
+        type: 'sort',
+        prompt: 'Sort each reproductive organ into the Male or Female reproductive system!',
+        bins: ['Male Reproductive System ♂️', 'Female Reproductive System ♀️'],
+        items: [
+          { text: 'Testis (produces male hormones & sperms)', bin: 0 },
+          { text: 'Scrotum (protects testis & keeps proper temp)', bin: 0 },
+          { text: 'Sperm duct (pathway from testis to urethra)', bin: 0 },
+          { text: 'Ovary (produces female hormones & releases eggs)', bin: 1 },
+          { text: 'Oviduct (pathway for eggs to uterus)', bin: 1 },
+          { text: 'Uterus (place where embryo develops)', bin: 1 }
+        ],
+        explanation: 'Male reproductive parts include testis, scrotum, sperm duct, urethra, and penis. Female reproductive parts include ovary, oviduct, uterus, and vagina.'
+      },
+      {
+        id: 'ch2_q2',
+        chapter: 'ch2',
+        type: 'sequence',
+        prompt: 'Arrange the 6 stages of human growth in chronological order from youngest to oldest!',
+        steps: [
+          'Babyhood (0–1 year old: big head, short limbs)',
+          'Early childhood (about 2–5 years old: primary teeth grow in)',
+          'Childhood (about 6–10 years old: permanent teeth start)',
+          'Puberty (about 11–17 years old: reproductive system matures)',
+          'Adulthood (about 18–59 years old: body fully developed)',
+          'Late adulthood (60+ years old: white hair, wrinkled skin)'
+        ],
+        explanation: 'Humans grow through babyhood (0–1), early childhood (2–5), childhood (6–10), puberty (11–17), adulthood (18–59), and late adulthood (60+).'
+      },
+      {
+        id: 'ch2_q3',
+        chapter: 'ch2',
+        type: 'mcq',
+        prompt: 'During which stage of human growth do permanent teeth start to grow in and limbs gradually become longer?',
+        options: [
+          'Childhood (about 6–10 years old)',
+          'Babyhood (0–1 year old)',
+          'Early childhood (about 2–5 years old)',
+          'Adulthood (about 18–59 years old)'
+        ],
+        answer: 0,
+        explanation: 'In childhood (about 6–10 years old), permanent teeth start to grow in, height and weight increase steadily, and limbs gradually lengthen.'
+      },
+      {
+        id: 'ch2_q4',
+        chapter: 'ch2',
+        type: 'sort',
+        prompt: 'Sort these puberty body changes into Male Only, Female Only, or Both Males & Females!',
+        bins: ['Male Puberty Only 👦', 'Female Puberty Only 👧', 'Both Males & Females 🌟'],
+        items: [
+          { text: 'Facial hair grows & Adam’s apple enlarges', bin: 0 },
+          { text: 'Voice deepens & muscles become stronger', bin: 0 },
+          { text: 'Breasts develop', bin: 1 },
+          { text: 'Hips widen & body shape becomes rounder', bin: 1 },
+          { text: 'Acne becomes more common', bin: 2 },
+          { text: 'Pubic hair & underarm hair grow', bin: 2 }
+        ],
+        explanation: 'Boys grow facial hair, stronger muscles, and a larger Adam’s apple (deeper voice). Girls develop breasts and wider hips. Both experience acne, pubic/underarm hair, and rapid height/weight growth.'
+      },
+      {
+        id: 'ch2_q5',
+        chapter: 'ch2',
+        type: 'mcq',
+        prompt: 'Why do boys and girls experience rapid growth and obvious body changes during puberty?',
+        options: [
+          'They secrete large amounts of hormones that stimulate these body changes',
+          'Their primary teeth fall out and are replaced by permanent teeth',
+          'Their lungs stop exchanging carbon dioxide during sleep',
+          'Their body functions begin to decline rapidly'
+        ],
+        answer: 0,
+        explanation: 'Boys and girls in puberty secrete large amounts of hormones, which stimulate rapid growth and physical changes.'
+      },
+      {
+        id: 'ch2_q6',
+        chapter: 'ch2',
+        type: 'sequence',
+        prompt: 'Put the steps of menstruation in females in the correct biological sequence!',
+        steps: [
+          'The ovary releases a mature egg into the oviduct',
+          'The lining of the uterus thickens to prepare for nurturing an embryo',
+          'The egg is not fertilised, so the uterus lining sheds and the egg breaks down',
+          'The shed lining and unfertilised egg mix with blood and flow out through the vagina'
+        ],
+        explanation: 'When a mature egg released by the ovary is not fertilised, the thickened uterus lining sheds and flows out with blood through the vagina.'
+      },
+      {
+        id: 'ch2_q7',
+        chapter: 'ch2',
+        type: 'mcq',
+        prompt: 'Which of the following is a PSYCHOLOGICAL change that occurs during puberty?',
+        options: [
+          'Wanting more independence and becoming more emotional and impulsive',
+          'The Adam’s apple growing larger and voice deepening',
+          'Hips widening and body shape becoming rounder',
+          'The uterus lining thickening each month'
+        ],
+        answer: 0,
+        explanation: 'Psychological changes during puberty include wanting more independence, feeling curious about sex, becoming more emotional/impulsive, and caring about appearance and image.'
+      },
+      {
+        id: 'ch2_q8',
+        chapter: 'ch2',
+        type: 'sort',
+        prompt: 'Classify the factors affecting growth and development during puberty into Genetic vs Environmental!',
+        bins: ['Genetic Factor 🧬', 'Environmental Factors 🥗'],
+        items: [
+          { text: 'Heredity (traits passed from parents)', bin: 0 },
+          { text: 'Nutrition (balanced diet)', bin: 1 },
+          { text: 'Regular exercise', bin: 1 },
+          { text: 'Adequate sleep', bin: 1 }
+        ],
+        explanation: 'Heredity is the genetic factor affecting growth, whereas nutrition, exercise, and sleep are the three environmental factors.'
+      },
+
+      // ==================== CHAPTER 3: PROPERTIES OF AIR (7 Questions) ====================
+      {
+        id: 'ch3_q1',
+        chapter: 'ch3',
+        type: 'mcq',
+        prompt: 'What are the approximate proportions of nitrogen and oxygen in the air?',
+        options: [
+          'About 4/5 nitrogen and about 1/5 oxygen',
+          'About 1/5 nitrogen and about 4/5 oxygen',
+          'About 1/2 nitrogen and about 1/2 carbon dioxide',
+          'About 4/5 oxygen and about 1/5 carbon dioxide'
+        ],
+        answer: 0,
+        explanation: 'Air consists of about 4/5 nitrogen, about 1/5 oxygen, and a small amount of carbon dioxide and other gases.'
+      },
+      {
+        id: 'ch3_q2',
+        chapter: 'ch3',
+        type: 'mcq',
+        prompt: 'How does inflating a packet of potato chips protect the crispy food inside?',
+        options: [
+          'Air takes up space inside the bag, reducing the chance of breaking the food due to collision',
+          'Air freezes the chips so they become harder',
+          'Air removes all gravity inside the bag',
+          'Air turns the chips into liquid'
+        ],
+        answer: 0,
+        explanation: 'Because air takes up space, inflating food packaging creates a cushion of space inside the bag, reducing damage from collision.'
+      },
+      {
+        id: 'ch3_q3',
+        chapter: 'ch3',
+        type: 'tf',
+        prompt: 'Air is completely weightless, so an inflated plastic bag weighs the exact same as a flat empty bag.',
+        answer: false,
+        explanation: 'False! Air has weight. Weighing a sealed bag filled with air on an electronic balance shows a measurable mass (e.g., 0.10 kg with bag).'
+      },
+      {
+        id: 'ch3_q4',
+        chapter: 'ch3',
+        type: 'sequence',
+        prompt: 'Explain how a suction cup sticks firmly to a smooth wall using air pressure!',
+        steps: [
+          'Press the suction cup to remove the air between the cup and the wall',
+          'The air pressure between the cup and the wall decreases',
+          'The outside air pressure around the cup is higher than the pressure inside',
+          'Higher outside air pressure presses the suction cup tightly against the wall'
+        ],
+        explanation: 'Removing air lowers the pressure behind the cup, allowing the higher atmospheric pressure outside to push it onto the wall.'
+      },
+      {
+        id: 'ch3_q5',
+        chapter: 'ch3',
+        type: 'mcq',
+        prompt: 'Why does a drink carton cave in when we suck the air out of it with a straw?',
+        options: [
+          'Air pressure inside decreases, so higher outside air pressure pushes the carton inward',
+          'Air pressure inside becomes much higher than outside air pressure',
+          'Sucking air heats up the cardboard and melts it',
+          'Gravity disappears inside the carton'
+        ],
+        answer: 0,
+        explanation: 'Sucking out air reduces the air pressure inside the carton. The higher outside atmospheric pressure then pushes the carton walls inward.'
+      },
+      {
+        id: 'ch3_q6',
+        chapter: 'ch3',
+        type: 'mcq',
+        prompt: 'Besides saving storage space, how does vacuum-packing food help preserve it?',
+        options: [
+          'It reduces contact between food and air, reducing germ growth and extending shelf life',
+          'It adds extra oxygen to keep germs alive',
+          'It heats the food to boiling point inside the bag',
+          'It turns water vapour into solid ice'
+        ],
+        answer: 0,
+        explanation: 'Vacuum-packed food has less air inside, which reduces contact between food and air, slowing germ growth and extending shelf life.'
+      },
+      {
+        id: 'ch3_q7',
+        chapter: 'ch3',
+        type: 'sequence',
+        prompt: 'Arrange the steps showing how wind is formed in nature during a sunny day!',
+        steps: [
+          'Sunlight heats the land, causing air above the land to warm up',
+          'Warm air above the land expands and rises',
+          'Colder air above the ocean flows towards the land to fill the space',
+          'This continuous flow of air forms wind (sea breeze)'
+        ],
+        explanation: 'When heated, air expands and rises; when cooled, air contracts. Colder ocean air flows in to replace rising warm land air, creating wind.'
+      },
+
+      // ==================== CHAPTER 4: REVERSIBLE & IRREVERSIBLE CHANGES (7 Questions) ====================
+      {
+        id: 'ch4_q1',
+        chapter: 'ch4',
+        type: 'sort',
+        prompt: 'Classify these changes in matter as Reversible Changes or Irreversible Changes!',
+        bins: ['Reversible Changes ♻️', 'Irreversible Changes 🔥'],
+        items: [
+          { text: 'Water freezing into ice or evaporating into vapour', bin: 0 },
+          { text: 'Dissolving salt in water', bin: 0 },
+          { text: 'Melting gold bars to cast new jewellery', bin: 0 },
+          { text: 'Burning charcoal into ash', bin: 1 },
+          { text: 'Cooking raw meat', bin: 1 },
+          { text: 'Rusting of an iron nail & decomposing food waste', bin: 1 }
+        ],
+        explanation: 'Reversible changes allow matter to return to its original form using simple methods. Irreversible changes (burning, cooking, rotting, rusting) cannot return to their original form.'
+      },
+      {
+        id: 'ch4_q2',
+        chapter: 'ch4',
+        type: 'mcq',
+        prompt: 'What happens to water vapour when it is cooled in the atmosphere?',
+        options: [
+          'It condenses and becomes liquid water',
+          'It melts and becomes ice',
+          'It evaporates and disappears forever',
+          'It undergoes an irreversible chemical change'
+        ],
+        answer: 0,
+        explanation: 'Water vapour condenses when cooled and becomes water. All changes among the three states of water are reversible.'
+      },
+      {
+        id: 'ch4_q3',
+        chapter: 'ch4',
+        type: 'sequence',
+        prompt: 'Put the steps for recycling used aluminium cans into the correct order!',
+        steps: [
+          'Clean the used aluminium cans and remove the paint',
+          'Melt the cleaned aluminium cans at high temperature',
+          'Freeze (cool) and crush the metal into aluminium sheets',
+          'Use the aluminium sheets to make new aluminium cans'
+        ],
+        explanation: 'Recycling metal uses reversible state changes: clean & remove paint → melt → freeze & crush into sheets → make new cans.'
+      },
+      {
+        id: 'ch4_q4',
+        chapter: 'ch4',
+        type: 'mcq',
+        prompt: 'How do irreversible changes (such as rotting remains of animals and plants) benefit nature?',
+        options: [
+          'The remains turn into nutrients after rotting and return to the soil for plants to absorb',
+          'They prevent water from evaporating into clouds',
+          'They turn soil into solid iron and steel',
+          'They stop plants from growing in forests'
+        ],
+        answer: 0,
+        explanation: 'When animal and plant remains rot (an irreversible change), they turn into nutrients that return to the soil for plants to absorb.'
+      },
+      {
+        id: 'ch4_q5',
+        chapter: 'ch4',
+        type: 'mcq',
+        prompt: 'Which TWO conditions are BOTH necessary for iron to rust?',
+        options: [
+          'Air and water',
+          'Sunlight and carbon dioxide',
+          'Lubricant oil and paint',
+          'High heat and dry sand'
+        ],
+        answer: 0,
+        explanation: 'Rusting requires BOTH air and water. That is why iron items exposed to humid air rust much faster.'
+      },
+      {
+        id: 'ch4_q6',
+        chapter: 'ch4',
+        type: 'sort',
+        prompt: 'Match each rust prevention method to its real-world application and limitation!',
+        bins: [
+          'Lubricant / Oil 🔧',
+          'Paint 🎨',
+          'Stainless Steel ✨',
+          'Plastic Wrap 🧥'
+        ],
+        items: [
+          { text: 'Applied to door hinges; oil is consumed over time', bin: 0 },
+          { text: 'Used on iron gates; cheap, but peels off easily', bin: 1 },
+          { text: 'Used for taps & sinks; resists high heat, but pricey', bin: 2 },
+          { text: 'Wraps iron hangers; durable, but limited application', bin: 3 }
+        ],
+        explanation: 'Oil lubricates hinges/tools (consumed over time); paint is cheap (peels off easily); stainless steel resists high temperatures (expensive); plastic wrap is durable (limited uses).'
+      },
+      {
+        id: 'ch4_q7',
+        chapter: 'ch4',
+        type: 'tf',
+        prompt: 'Rusting is a reversible change because wiping off the reddish-brown rust turns it back into shiny iron.',
+        answer: false,
+        explanation: 'False! Rusting is an irreversible corrosion change that produces a new reddish-brown substance called rust.'
+      },
+
+      // ==================== CHAPTER 5: MICROORGANISMS (7 Questions) ====================
+      {
+        id: 'ch5_q1',
+        chapter: 'ch5',
+        type: 'sequence',
+        prompt: 'Arrange the 4 major types of microorganisms from SMALLEST to LARGEST!',
+        steps: [
+          'Viruses (smallest; must depend on other living things to reproduce)',
+          'Bacteria (bigger than viruses; shaped like rods, arcs, spheres, or spirals)',
+          'Fungi (usually bigger than bacteria; consist of thin hyphae, e.g., yeast & mould)',
+          'Algae (usually bigger than fungi; mostly float in freshwater or oceans)'
+        ],
+        explanation: 'From smallest to largest: Viruses → Bacteria → Fungi → Algae.'
+      },
+      {
+        id: 'ch5_q2',
+        chapter: 'ch5',
+        type: 'mcq',
+        prompt: 'What is the ecological role of ALGAE in aquatic food chains?',
+        options: [
+          'Producers that make food on their own and provide energy for other members',
+          'Decomposers that rot dead animals into soil nutrients',
+          'Viruses that infect fish and water plants',
+          'Medicines that kill harmful bacteria'
+        ],
+        answer: 0,
+        explanation: 'Algae are producers: they make food on their own and provide energy for other members of aquatic food chains, whereas fungi and bacteria act as decomposers.'
+      },
+      {
+        id: 'ch5_q3',
+        chapter: 'ch5',
+        type: 'sort',
+        prompt: 'Sort these foods by the microorganism used to produce them!',
+        bins: ['Yeast (Fungus) 🍞', 'Lactic Acid Bacteria (Bacterium) 🥛'],
+        items: [
+          { text: 'Bread & Steamed buns', bin: 0 },
+          { text: 'Pizzas', bin: 0 },
+          { text: 'Beer & Wine', bin: 0 },
+          { text: 'Cheese', bin: 1 },
+          { text: 'Yoghurt', bin: 1 },
+          { text: 'Probiotic drinks', bin: 1 }
+        ],
+        explanation: 'Yeast (a fungus) makes dough expand for bread, steamed buns, pizzas, and ferments beer/wine. Lactic acid bacteria make cheese, yoghurt, and probiotic drinks.'
+      },
+      {
+        id: 'ch5_q4',
+        chapter: 'ch5',
+        type: 'sort',
+        prompt: 'Match each specific microorganism to its effect on human health!',
+        bins: [
+          'Varicella-zoster (Virus)',
+          'Pneumococcus (Bacterium)',
+          'Trichophyton (Fungus)',
+          'Bifidobacteria (Probiotic)'
+        ],
+        items: [
+          { text: 'Stays hidden after chickenpox; may cause shingles', bin: 0 },
+          { text: 'Found in nose/throat; causes pneumonia or meningitis', bin: 1 },
+          { text: 'Found on skin/nails; causes tinea or fungal nails', bin: 2 },
+          { text: 'Lives in intestines; inhibits harmful bacteria', bin: 3 }
+        ],
+        explanation: 'Varicella-zoster causes chickenpox/shingles; Pneumococcus causes pneumonia/otitis media/meningitis; Trichophyton causes tinea/fungal nails; Bifidobacteria is a helpful intestinal probiotic.'
+      },
+      {
+        id: 'ch5_q5',
+        chapter: 'ch5',
+        type: 'mcq',
+        prompt: 'How do bacteria and fungi help humans manage waste and water pollution?',
+        options: [
+          'They break down food waste into compost for crops and purify wastewater',
+          'They turn plastic bottles into stainless steel',
+          'They produce antibiotics inside drinking water pipes',
+          'They prevent rain from falling into rivers'
+        ],
+        answer: 0,
+        explanation: 'Bacteria and fungi decompose food waste into nutrient-rich compost for crops, and bacteria break down pollutants in wastewater to purify it.'
+      },
+      {
+        id: 'ch5_q6',
+        chapter: 'ch5',
+        type: 'mcq',
+        prompt: 'Why is it essential to complete the whole course of antibiotics prescribed by a doctor?',
+        options: [
+          'Improper use speeds up growth of drug-resistant bacteria that replace normal bacteria',
+          'Antibiotics are needed to kill flu viruses faster',
+          'Stopping early turns antibiotics into yeast',
+          'Completing the course makes bacteria grow stronger'
+        ],
+        answer: 0,
+        explanation: 'Improper use of antibiotics speeds up the growth and reproduction of drug-resistant bacteria, making antibiotics ineffective, lengthening treatment time, and risking community outbreaks.'
+      },
+      {
+        id: 'ch5_q7',
+        chapter: 'ch5',
+        type: 'tf',
+        prompt: 'Antibiotics are effective medicines for curing infections caused by BOTH viruses and bacteria.',
+        answer: false,
+        explanation: 'False! Antibiotics are only effective in treating infections caused by BACTERIA, not viruses.'
+      }
+    ];
+
+    // =========================================================================
+    // 3. PERSISTENT STORAGE (Stars, Mastered IDs, Student ID & Teacher Unlock)
+    // =========================================================================
+    const STORAGE_KEY = 'p5a_science_adventure_v2';
+    let progressData = {
+      stars: {},          // { ch1: 0..3, ch2: 0..3, ..., mega: 0..3 }
+      masteredIds: [],    // array of unique question IDs answered correctly
+      missedIds: [],      // array of unique question IDs currently in Curiosity Replay
+      studentClass: '',   // e.g. "5A"
+      studentName: '',    // e.g. "Chan Tai Man (05)"
+      teacherUnlocked: false
+    };
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          progressData.stars = parsed.stars || {};
+          progressData.masteredIds = Array.isArray(parsed.masteredIds) ? parsed.masteredIds : [];
+          progressData.missedIds = Array.isArray(parsed.missedIds) ? parsed.missedIds : [];
+          progressData.studentClass = typeof parsed.studentClass === 'string' ? parsed.studentClass : '';
+          progressData.studentName = typeof parsed.studentName === 'string' ? parsed.studentName : '';
+          progressData.teacherUnlocked = Boolean(parsed.teacherUnlocked);
+        }
+      } catch (e) {
+        progressData = {
+          stars: {},
+          masteredIds: [],
+          missedIds: [],
+          studentClass: '',
+          studentName: '',
+          teacherUnlocked: false
+        };
+      }
+      updateHeaderBadges();
+    }
+
+    function getFormattedStudentLabel() {
+      const cls = (progressData.studentClass || '').trim();
+      const name = (progressData.studentName || '').trim();
+      if (cls && name) return `${cls} • ${name}`;
+      if (cls) return `Class ${cls}`;
+      if (name) return name;
+      return 'Enter Class & Name / Class No.';
+    }
+
+    function hasStudentIdentity() {
+      return Boolean((progressData.studentClass || '').trim() || (progressData.studentName || '').trim());
+    }
+
+    function updateStudentIdentity(field, value) {
+      if (field === 'class') {
+        progressData.studentClass = value;
+      } else if (field === 'name') {
+        progressData.studentName = value;
+      }
+      persistProgress();
+      updateHeaderBadges();
+      const hubBadgeText = document.getElementById('hub-identity-preview-text');
+      const hubBadgeBox = document.getElementById('hub-identity-preview-box');
+      if (hubBadgeText) {
+        hubBadgeText.textContent = getFormattedStudentLabel();
+      }
+      if (hubBadgeBox) {
+        if (hasStudentIdentity()) {
+          hubBadgeBox.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-800 text-xs font-bold border border-indigo-200';
+        } else {
+          hubBadgeBox.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200';
+        }
+      }
+    }
+
+    function recordMasteredQuestion(qId) {
+      if (!qId) return;
+      let changed = false;
+      if (!progressData.masteredIds.includes(qId)) {
+        progressData.masteredIds.push(qId);
+        changed = true;
+      }
+      // Automatically clear from Curiosity Replay when answered correctly!
+      const missedIdx = progressData.missedIds.indexOf(qId);
+      if (missedIdx !== -1) {
+        progressData.missedIds.splice(missedIdx, 1);
+        changed = true;
+      }
+      if (changed) {
+        persistProgress();
+        updateHeaderBadges();
+      }
+    }
+
+    function recordMissedQuestion(qId) {
+      if (!qId) return;
+      if (!progressData.missedIds.includes(qId)) {
+        progressData.missedIds.push(qId);
+        persistProgress();
+        updateHeaderBadges();
+      }
+    }
+
+    function saveStars(modeId, starsEarned) {
+      // Do not overwrite chapter/mega star ratings during partial Curiosity Replay rounds
+      if (modeId === 'mistakes_session' || modeId === 'mistakes_bank') return;
+      const current = progressData.stars[modeId] || 0;
+      if (starsEarned > current) {
+        progressData.stars[modeId] = starsEarned;
+        persistProgress();
+      }
+      updateHeaderBadges();
+    }
+
+    function persistProgress() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(progressData));
+      } catch (e) {}
+    }
+
+    // =========================================================================
+    // SEQUENTIAL STAGE UNLOCKING & HIDDEN TEACHER UNLOCK (5 TAPS + PASSCODE 2026)
+    // =========================================================================
+    function isChapterUnlocked(chapterIndex) {
+      if (progressData.teacherUnlocked) return true;
+      if (chapterIndex <= 0) return true; // Stage 1 is always unlocked
+      const prevChapter = CHAPTERS[chapterIndex - 1];
+      return (progressData.stars[prevChapter.id] || 0) >= 1;
+    }
+
+    function getClearedChaptersCount() {
+      if (progressData.teacherUnlocked) return CHAPTERS.length;
+      return CHAPTERS.filter(ch => (progressData.stars[ch.id] || 0) >= 1).length;
+    }
+
+    function isMegaQuestUnlocked() {
+      if (progressData.teacherUnlocked) return true;
+      return CHAPTERS.every(ch => (progressData.stars[ch.id] || 0) >= 1);
+    }
+
+    let teacherTapCount = 0;
+    let teacherTapTimer = null;
+
+    function handleSecretTitleTap() {
+      teacherTapCount += 1;
+      if (teacherTapTimer) clearTimeout(teacherTapTimer);
+      teacherTapTimer = setTimeout(() => {
+        teacherTapCount = 0;
+      }, 2200);
+
+      if (teacherTapCount >= 5) {
+        teacherTapCount = 0;
+        openTeacherModal();
+      }
+    }
+
+    function openTeacherModal() {
+      playSound('click');
+      const modal = document.getElementById('teacher-modal');
+      const input = document.getElementById('teacher-passcode-input');
+      const err = document.getElementById('teacher-passcode-error');
+      if (input) input.value = '';
+      if (err) err.classList.add('hidden');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => input && input.focus(), 60);
+      }
+    }
+
+    function closeTeacherModal() {
+      const modal = document.getElementById('teacher-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function submitTeacherUnlock() {
+      const input = document.getElementById('teacher-passcode-input');
+      const err = document.getElementById('teacher-passcode-error');
+      const code = input ? input.value.trim() : '';
+
+      if (code === '2026') {
+        progressData.teacherUnlocked = true;
+        persistProgress();
+        closeTeacherModal();
+        playSound('victory');
+        launchConfetti();
+        renderHub();
+        showToast('🔓', 'Teacher Unlock Activated! All 5 chapters & Final Mega Quest are now open.');
+      } else {
+        playSound('wrong');
+        if (err) err.classList.remove('hidden');
+        if (input) {
+          input.value = '';
+          input.focus();
+        }
+      }
+    }
+
+    let toastTimer = null;
+    function showToast(icon, message) {
+      const toast = document.getElementById('toast-banner');
+      const iconEl = document.getElementById('toast-icon');
+      const textEl = document.getElementById('toast-text');
+      if (!toast || !iconEl || !textEl) return;
+
+      iconEl.textContent = icon;
+      textEl.textContent = message;
+      toast.classList.remove('hidden');
+      toast.classList.add('flex');
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('flex');
+      }, 3200);
+    }
+
+    function handleLockedStageClick(cardEl, message) {
+      playSound('wrong');
+      if (cardEl) {
+        cardEl.classList.remove('animate-shake');
+        void cardEl.offsetWidth; // trigger reflow to replay shake
+        cardEl.classList.add('animate-shake');
+      }
+      showToast('🔒', message);
+    }
+
+    function updateHeaderBadges() {
+      const keys = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'mega'];
+      const totalStars = keys.reduce((acc, k) => acc + (progressData.stars[k] || 0), 0);
+      const starEl = document.getElementById('total-stars-display');
+      if (starEl) starEl.textContent = `${totalStars} / 18`;
+
+      const masteryPct = Math.round((progressData.masteredIds.length / QUESTION_BANK.length) * 100);
+      const masteryEl = document.getElementById('mastery-pill-display');
+      if (masteryEl) masteryEl.textContent = `${masteryPct}%`;
+
+      const headerStudentPill = document.getElementById('header-student-pill');
+      const headerStudentText = document.getElementById('header-student-text');
+      if (headerStudentPill && headerStudentText) {
+        if (hasStudentIdentity()) {
+          headerStudentText.textContent = getFormattedStudentLabel();
+          headerStudentPill.classList.remove('hidden');
+          headerStudentPill.classList.add('sm:flex');
+        } else {
+          headerStudentPill.classList.add('hidden');
+          headerStudentPill.classList.remove('sm:flex');
+        }
+      }
+    }
+
+    function escapeHtmlAttr(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    // =========================================================================
+    // 4. ANTI-DOUBLE-CLICK & STRICT DEDUPLICATED GAME STATE
+    // =========================================================================
+    let gameState = {
+      modeId: null,
+      modeTitle: '',
+      questions: [],
+      currentIndex: 0,
+      score: 0,
+      streak: 0,
+      maxStreak: 0,
+      hearts: 3,
+      maxHearts: 3,
+      isLocked: false,        // Prevents double-click / double-scoring
+      answeredCurrent: false,
+      mistakes: [],
+      missedQuestionIds: [],  // Tracks unique question IDs missed in this round
+      sortAssignments: {},
+      selectedSortItem: null,
+      sequenceOrder: []
+    };
+
+    // Strict Fisher-Yates Shuffle with ID deduplication guard
+    function buildUniqueQuestionSession(pool, limit = null) {
+      const seenIds = new Set();
+      const uniquePool = [];
+      for (const item of pool) {
+        if (!seenIds.has(item.id)) {
+          seenIds.add(item.id);
+          // Deep clone question object so per-round shuffling never mutates master QUESTION_BANK
+          uniquePool.push(JSON.parse(JSON.stringify(item)));
+        }
+      }
+      for (let i = uniquePool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [uniquePool[i], uniquePool[j]] = [uniquePool[j], uniquePool[i]];
+      }
+      return limit ? uniquePool.slice(0, Math.min(limit, uniquePool.length)) : uniquePool;
+    }
+
+    function showModal({ icon, title, body, confirmText, onConfirm }) {
+      document.getElementById('modal-icon').textContent = icon;
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-body').textContent = body;
+      const confirmBtn = document.getElementById('modal-confirm');
+      confirmBtn.textContent = confirmText;
+      confirmBtn.onclick = () => {
+        closeModal();
+        onConfirm();
+      };
+      const modal = document.getElementById('custom-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('custom-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function confirmQuit() {
+      playSound('click');
+      showModal({
+        icon: '🚀',
+        title: 'Return to Discovery Base Camp?',
+        body: 'Your current expedition progress will reset if you head back to Base Camp now.',
+        confirmText: 'Yes, Back to Camp',
+        onConfirm: () => renderHub()
+      });
+    }
+
+    function goHome() {
+      if (gameState.modeId && gameState.currentIndex < gameState.questions.length) {
+        confirmQuit();
+      } else {
+        playSound('click');
+        renderHub();
+      }
+    }
+
+    // =========================================================================
+    // 5. HUB / MAIN MENU VIEW
+    // =========================================================================
+    function renderHub() {
+      gameState.modeId = null;
+      gameState.isLocked = false;
+      document.getElementById('home-btn').classList.add('hidden');
+      stopConfetti();
+
+      const app = document.getElementById('app-container');
+      const megaStars = progressData.stars['mega'] || 0;
+      const megaUnlocked = isMegaQuestUnlocked();
+      const clearedCount = getClearedChaptersCount();
+      const remainingToMega = Math.max(0, CHAPTERS.length - clearedCount);
+      const totalMastered = progressData.masteredIds.length;
+      const totalQuestions = QUESTION_BANK.length;
+      const masteryPct = Math.round((totalMastered / totalQuestions) * 100);
+      const keys = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'mega'];
+      const totalStars = keys.reduce((acc, k) => acc + (progressData.stars[k] || 0), 0);
+      const validMissedIds = progressData.missedIds.filter(id => QUESTION_BANK.some(q => q.id === id));
+      const missedCount = validMissedIds.length;
+
+      app.innerHTML = `
+        <div class="animate-pop space-y-6">
+          <!-- Student Identity Bar -->
+          <div class="bg-white rounded-3xl p-4 sm:p-5 game-card border border-indigo-100 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <span id="hub-identity-preview-box" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                  hasStudentIdentity()
+                    ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                }">
+                  <span>🪪</span>
+                  <span id="hub-identity-preview-text">${escapeHtmlAttr(getFormattedStudentLabel())}</span>
+                </span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
+                  ⭐ ${totalStars} / 18 Stars
+                </span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
+                  🧭 ${masteryPct}% Unlocked
+                </span>
+              </div>
+              <span class="text-[11px] text-slate-400 font-medium">
+                Auto-saved for Google Classroom screenshots
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div class="sm:col-span-4">
+                <label for="input-student-class" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Class
+                </label>
+                <input id="input-student-class" type="text" maxlength="12"
+                  value="${escapeHtmlAttr(progressData.studentClass)}"
+                  oninput="updateStudentIdentity('class', this.value)"
+                  placeholder="e.g. 5A"
+                  class="student-input w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border-2 border-slate-200 focus:bg-white focus:border-indigo-500 focus:outline-none text-sm font-bold text-slate-800 transition" />
+              </div>
+              <div class="sm:col-span-8">
+                <label for="input-student-name" class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Name / Class No.
+                </label>
+                <input id="input-student-name" type="text" maxlength="40"
+                  value="${escapeHtmlAttr(progressData.studentName)}"
+                  oninput="updateStudentIdentity('name', this.value)"
+                  placeholder="e.g. Chan Tai Man (05)"
+                  class="student-input w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border-2 border-slate-200 focus:bg-white focus:border-indigo-500 focus:outline-none text-sm font-bold text-slate-800 transition" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Hero Banner -->
+          <div class="bg-white rounded-3xl p-5 sm:p-8 game-card border border-blue-100 relative overflow-hidden">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
+              <div class="space-y-2.5 text-center lg:text-left max-w-xl">
+                <div class="flex flex-wrap items-center justify-center lg:justify-start gap-2">
+                  <button type="button" onclick="handleSecretTitleTap()"
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 hover:bg-blue-100/80 text-blue-700 text-xs font-bold uppercase tracking-wider border border-blue-200 cursor-pointer transition">
+                    <span>🧪 Junior Scientist Revision Quest</span>
+                    ${progressData.teacherUnlocked ? '<span class="ml-1 px-1.5 py-0.2 rounded bg-indigo-600 text-white text-[10px]">ALL UNLOCKED</span>' : ''}
+                  </button>
+                  <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+                    🧭 ${clearedCount} / ${CHAPTERS.length} Stages Cleared • ${totalMastered}/${totalQuestions} Secrets
+                  </span>
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-bold text-slate-800">
+                  Clear Stages 1–5 to Unlock the Mega Quest!
+                </h2>
+                <p class="text-slate-600 text-sm sm:text-base">
+                  Earn at least <strong>1 Explorer ⭐</strong> in each stage to unlock the next chapter expedition, and revisit tricky clues anytime in <strong>Curiosity Replay</strong>!
+                </p>
+              </div>
+
+              <!-- Action Cards: Mega Mix + Curiosity Replay Lab -->
+              <div class="w-full lg:w-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3 shrink-0">
+                <!-- Mega Challenge Card (Unlocked after Stage 5) -->
+                ${megaUnlocked ? `
+                  <button onclick="startMission('mega')" class="w-full sm:w-64 btn-3d bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 hover:brightness-105 text-white border-indigo-800 rounded-2xl p-4 text-left shadow-lg">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-2xl animate-float">🏆</span>
+                      <span class="bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded-full text-xs font-bold">
+                        ${renderStarIcons(megaStars)}
+                      </span>
+                    </div>
+                    <div class="font-display font-bold text-base">Final Mega Quest</div>
+                    <div class="text-blue-100 text-xs mt-0.5">15 surprise science puzzles (Stages 1–5)</div>
+                  </button>
+                ` : `
+                  <div onclick="handleLockedStageClick(this, 'Clear all 5 stages with at least ⭐1 each to unlock the Final Mega Quest!')"
+                    class="w-full sm:w-64 cursor-pointer rounded-2xl p-4 text-left bg-slate-100 border-2 border-dashed border-slate-300 text-slate-500 flex flex-col justify-between transition hover:bg-slate-200/60">
+                    <div class="flex items-center justify-between mb-1.5">
+                      <span class="text-2xl">🔒</span>
+                      <span class="bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                        ${clearedCount} / 5 Cleared
+                      </span>
+                    </div>
+                    <div>
+                      <div class="font-display font-bold text-base text-slate-700">Final Mega Quest</div>
+                      <div class="text-slate-500 text-xs mt-0.5">Clear ${remainingToMega} more stage${remainingToMega > 1 ? 's' : ''} (⭐1+) to unlock!</div>
+                    </div>
+                  </div>
+                `}
+
+                <!-- Persistent Curiosity Replay Card -->
+                <div class="w-full sm:w-64 rounded-2xl p-4 border-2 flex flex-col justify-between shadow-sm ${
+                  missedCount > 0
+                    ? 'bg-gradient-to-br from-rose-50 to-orange-50 border-rose-300'
+                    : 'bg-emerald-50/70 border-emerald-200'
+                }">
+                  <div>
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-2xl">${missedCount > 0 ? '🎯' : '✨'}</span>
+                      <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        missedCount > 0
+                          ? 'bg-rose-500 text-white'
+                          : 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                      }">
+                        ${missedCount > 0 ? `${missedCount} to Re-Explore` : 'All Unlocked!'}
+                      </span>
+                    </div>
+                    <div class="font-display font-bold text-base text-slate-800">
+                      Curiosity Replay
+                    </div>
+                    <p class="text-xs text-slate-600 mt-0.5">
+                      ${missedCount > 0
+                        ? `Revisit ${missedCount} tricky puzzle${missedCount > 1 ? 's' : ''} and level up!`
+                        : 'Super smooth! Any tricky puzzles you meet will appear here for extra fun practice.'}
+                    </p>
+                  </div>
+
+                  <div class="flex items-center gap-1.5 mt-3">
+                    <button onclick="startMistakeBankMission()" ${missedCount === 0 ? 'disabled' : ''}
+                      class="w-full btn-3d py-2 px-3 rounded-xl font-bold text-xs transition ${
+                        missedCount > 0
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-800'
+                          : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'
+                      }">
+                      ${missedCount > 0 ? `🔄 Play & Level Up (${missedCount})` : 'Ready to Explore'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sequential Stage Selection Grid -->
+          <div>
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <h3 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
+                <span>🗺️</span> Stage-by-Stage Expedition Map
+              </h3>
+              <span class="text-xs text-slate-500 font-medium">Earn ⭐1+ in each stage to unlock the next stage!</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              ${CHAPTERS.map((ch, idx) => {
+                const unlocked = isChapterUnlocked(idx);
+                const prevCh = idx > 0 ? CHAPTERS[idx - 1] : null;
+                const stars = progressData.stars[ch.id] || 0;
+                const chQuestions = QUESTION_BANK.filter(q => q.chapter === ch.id);
+                const masteredCount = chQuestions.filter(q => progressData.masteredIds.includes(q.id)).length;
+                const masteryPct = Math.round((masteredCount / chQuestions.length) * 100);
+
+                if (!unlocked) {
+                  const lockMsg = `Clear ${prevCh.number} (${prevCh.title}) with at least ⭐1 to unlock Stage ${ch.stageNum}!`;
+                  return `
+                    <div onclick="handleLockedStageClick(this, '${lockMsg.replace(/'/g, "\\'")}')"
+                      class="cursor-pointer bg-slate-100/90 rounded-2xl p-5 border-2 border-dashed border-slate-300 flex flex-col justify-between transition hover:bg-slate-200/50">
+                      <div>
+                        <div class="flex items-start justify-between gap-2 mb-3">
+                          <div class="w-12 h-12 rounded-2xl bg-slate-300 flex items-center justify-center text-2xl text-slate-600 shadow-2xs">
+                            🔒
+                          </div>
+                          <span class="px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 text-[11px] font-bold">
+                            Stage ${ch.stageNum} Locked
+                          </span>
+                        </div>
+
+                        <div class="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200/80 text-slate-600 mb-1.5">
+                          ${ch.number} • ${ch.unit.split('•')[0].trim()}
+                        </div>
+                        <h4 class="font-display font-bold text-lg text-slate-600 leading-snug mb-1.5">
+                          ${ch.title}
+                        </h4>
+                        <p class="text-xs text-slate-500 leading-relaxed mb-4">
+                          ${ch.description}
+                        </p>
+                      </div>
+
+                      <div class="space-y-2">
+                        <div class="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-center">
+                          🔑 Clear Stage ${prevCh.stageNum} with ⭐1+ to unlock!
+                        </div>
+                        <div class="flex gap-2">
+                          <button type="button" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-200 text-slate-500 font-semibold text-sm flex items-center justify-center gap-1.5">
+                            <span>🔒 Locked</span>
+                          </button>
+                          <button type="button" onclick="event.stopPropagation(); openStudyModal('${ch.id}')" class="btn-3d py-2.5 px-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-600 border-slate-300 font-semibold text-sm" title="Preview ${ch.number} Flash-Notes">
+                            📖
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }
+
+                return `
+                  <div class="bg-white rounded-2xl p-5 game-card border ${stars >= 1 ? 'border-emerald-200/90' : 'border-blue-200 ring-2 ring-blue-100'} flex flex-col justify-between hover:-translate-y-1 transition-transform duration-200">
+                    <div>
+                      <div class="flex items-start justify-between gap-2 mb-3">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br ${ch.color} flex items-center justify-center text-2xl text-white shadow-sm">
+                          ${ch.emoji}
+                        </div>
+                        <div class="text-right">
+                          <div class="text-sm font-bold tracking-wide">${renderStarIcons(stars)}</div>
+                          <span class="text-[11px] font-semibold ${stars >= 1 ? 'text-emerald-600' : 'text-blue-600'}">
+                            ${stars >= 1 ? `✅ Cleared • ${masteryPct}% Secrets` : '✨ New Stage Ready!'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${ch.badgeBg} mb-1.5">
+                        ${ch.number} • ${ch.unit.split('•')[0].trim()}
+                      </div>
+                      <h4 class="font-display font-bold text-lg text-slate-800 leading-snug mb-1.5">
+                        ${ch.title}
+                      </h4>
+                      <p class="text-xs text-slate-500 leading-relaxed mb-4">
+                        ${ch.description}
+                      </p>
+                    </div>
+
+                    <div class="flex gap-2">
+                      <button onclick="startMission('${ch.id}')" class="flex-1 btn-3d py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border-slate-950 font-semibold text-sm flex items-center justify-center gap-1.5">
+                        <span>${stars >= 1 ? `Replay Stage ${ch.stageNum}` : `Start Stage ${ch.stageNum}`}</span>
+                        <span>→</span>
+                      </button>
+                      <button onclick="openStudyModal('${ch.id}')" class="btn-3d py-2.5 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300 font-semibold text-sm" title="Read ${ch.number} Flash-Notes">
+                        📖
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+
+              <!-- Quick Revision Cheat-Sheet Card -->
+              <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-200/80 flex flex-col justify-between">
+                <div>
+                  <div class="w-12 h-12 rounded-2xl bg-amber-400 flex items-center justify-center text-2xl text-white shadow-sm mb-3">
+                    💡
+                  </div>
+                  <div class="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300 mb-1.5">
+                    Explorer Handbook
+                  </div>
+                  <h4 class="font-display font-bold text-lg text-slate-800 mb-1.5">
+                    Revision Notes & Discovery Log
+                  </h4>
+                  <p class="text-xs text-slate-600 leading-relaxed mb-4">
+                    Browse all 37 science secrets from your revision notes anytime—even before unlocking a stage!
+                  </p>
+                </div>
+                <button onclick="openStudyModal('all')" class="w-full btn-3d py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white border-amber-700 font-semibold text-sm">
+                  🧭 Open Discovery Handbook
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer Info (No reset/clear buttons) -->
+          <div class="pt-2 pb-4 text-center text-xs text-slate-400 border-t border-slate-200/70">
+            <span>Progress & Student Info save automatically on this device & browser.</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStarIcons(count) {
+      let html = '';
+      for (let i = 1; i <= 3; i++) {
+        html += i <= count ? '⭐' : '<span class="opacity-30">⭐</span>';
+      }
+      return html;
+    }
+
+    // =========================================================================
+    // 6. INTERACTIVE STUDY NOTES & MASTERY MODAL
+    // =========================================================================
+    const STUDY_NOTES_DATA = [
+      {
+        chapterId: 'ch1',
+        title: 'Ch.1 Breathing and Digestion',
+        emoji: '🫁',
+        color: 'border-rose-200 bg-rose-50/40',
+        bullets: [
+          '<strong>6 Major Body Parts:</strong> Brain, lung, heart, stomach, muscle, bone.',
+          '<strong>Respiratory System:</strong> Nose (air in) → Throat → Trachea → Bronchi (2 tubes entering lungs) → Lungs (oxygen into blood, carbon dioxide out). Diaphragm separates chest & abdomen and helps breathing.',
+          '<strong>Breathing In vs Out:</strong> <em>In:</em> ribs move outwards, diaphragm moves downwards, chest expands. <em>Out:</em> ribs move inwards, diaphragm moves upwards, chest contracts.',
+          '<strong>Exercise & Flu:</strong> Breaths per minute increase right after exercise, then decrease gradually. Flu symptoms of respiratory tract: coughing, sore throat, runny nose.',
+          '<strong>Protecting Respiratory System:</strong> Wear a mask during outbreaks, say no to smoking, exercise regularly, keep the room airy.',
+          '<strong>Digestive System:</strong> Mouth (teeth chew + saliva) → Pharynx → Oesophagus → Stomach (mashes food + digestive juices) → Small intestine (complete breakdown & nutrient absorption) → Large intestine (absorbs water & forms faeces) → Anus.',
+          '<strong>Peristalsis & Protection:</strong> Muscles behind food <em>contract</em> while muscles in front <em>relax</em>. Protect by eating regularly, chewing/swallowing slowly, having a balanced diet, and avoiding very hot food.'
+        ]
+      },
+      {
+        chapterId: 'ch2',
+        title: 'Ch.2 Reproduction and Development',
+        emoji: '🌱',
+        color: 'border-purple-200 bg-purple-50/40',
+        bullets: [
+          '<strong>Male Reproductive System:</strong> Testis (produces male hormones & sperms), Scrotum (protects testis & maintains proper temperature), Sperm duct (pathway from testis to urethra), Urethra (tube for urine & sperms), Penis (releases urine & sperms).',
+          '<strong>Female Reproductive System:</strong> Ovary (produces female hormones & regularly releases eggs), Oviduct (pathway for eggs to uterus), Uterus (where embryo develops), Vagina (allows baby to pass during childbirth).',
+          '<strong>6 Stages of Human Growth:</strong> Babyhood (0–1 yr: big head, short limbs) → Early childhood (2–5 yrs: primary teeth grow in) → Childhood (6–10 yrs: permanent teeth start, limbs lengthen) → Puberty (11–17 yrs: reproductive system matures) → Adulthood (18–59 yrs: fully developed) → Late adulthood (60+ yrs: white hair, wrinkled skin, functions decline).',
+          '<strong>Puberty Changes:</strong> Driven by large amounts of hormones. <em>Male:</em> facial hair, stronger muscles, Adam’s apple grows & voice deepens, wet dreams. <em>Female:</em> breasts develop, hips widen & rounder shape, menstruation. <em>Both:</em> acne, pubic/underarm hair, height/weight surge.',
+          '<strong>Menstruation Cycle:</strong> Ovary releases mature egg → uterus lining thickens → if unfertilised, lining sheds & egg breaks down → flows out with blood through vagina.',
+          '<strong>Psychological Changes & Attitude:</strong> Want more independence, curious about sex, more emotional/impulsive, care about appearance. Be optimistic and talk to parents/teachers.',
+          '<strong>Growth Factors:</strong> Genetic factor = <em>Heredity</em>. Environmental factors = <em>Nutrition, exercise, sleep</em>.'
+        ]
+      },
+      {
+        chapterId: 'ch3',
+        title: 'Ch.3 Properties of Air',
+        emoji: '💨',
+        color: 'border-sky-200 bg-sky-50/40',
+        bullets: [
+          '<strong>Air Composition:</strong> About 4/5 nitrogen, about 1/5 oxygen, plus a small amount of carbon dioxide and other gases.',
+          '<strong>Air Takes Up Space & Has Weight:</strong> Proven by inflated food packaging (prevents crispy food breaking from collision), bouncy castles (expand when inflated, deflate flat for transport), bubble wrap (cushions fragile items), and weighing inflated bags.',
+          '<strong>Atmospheric Pressure:</strong> Gas exerts pressure in all directions; Earth’s gravity causes downward pressure. Carton caves in when air is sucked out because outside air pressure > inside air pressure.',
+          '<strong>Suction Cups & Vacuum Bags:</strong> Removing air lowers inner pressure so higher outside air pressure presses the suction cup to the wall or caves in a vacuum storage bag (saving space, keeping dry). Vacuum-packed food is smaller and reduces contact with air to slow germ growth.',
+          '<strong>Air Cannon & Wind:</strong> Air pressure powers an air cannon. Waving cardboard moves air to make wind (faster air flow = greater wind). Heated air expands & rises; cooled air contracts. Daytime sun heats land → warm air rises → colder ocean air flows in to form wind.'
+        ]
+      },
+      {
+        chapterId: 'ch4',
+        title: 'Ch.4 Reversible & Irreversible Changes',
+        emoji: '🔥',
+        color: 'border-amber-200 bg-amber-50/40',
+        bullets: [
+          '<strong>Water State Changes (Reversible):</strong> Heated: ice melts → water, water evaporates → water vapour. Cooled: water vapour condenses → water, water freezes → ice. Essential for the water cycle, soil moisture, plant growth, and animal water sources.',
+          '<strong>Reversible vs Irreversible:</strong> Reversible changes return to original form via simple methods (water states, dissolving salt in water, melting gold bars to cast jewellery, recycling aluminium cans: clean/remove paint → melt → freeze & crush into sheets → new cans). Irreversible changes cannot return (burning charcoal, cooking meat, decomposing food waste, rotting remains returning nutrients to soil, rusting).',
+          '<strong>Rusting:</strong> Irreversible corrosion on iron producing reddish-brown rust. Requires BOTH <em>air</em> and <em>water</em>. Blunts scissor blades and makes bicycle gears rotate less smoothly.',
+          '<strong>4 Rust Prevention Methods:</strong> 1) <em>Lubricant/oil</em> on hinges/tools (lubricates, but oil is consumed over time); 2) <em>Paint</em> on gates (cheap, but peels off easily); 3) <em>Stainless steel</em> for taps/sinks (smooth & resists high temperatures, but expensive); 4) <em>Plastic wrap</em> on hangers (durable & beautiful, but limited application).'
+        ]
+      },
+      {
+        chapterId: 'ch5',
+        title: 'Ch.5 Microorganisms Under the Microscope',
+        emoji: '🦠',
+        color: 'border-emerald-200 bg-emerald-50/40',
+        bullets: [
+          '<strong>4 Types of Microorganisms (Smallest to Largest):</strong> 1) <em>Viruses</em> (smallest, depend on other living things to reproduce); 2) <em>Bacteria</em> (rods, arcs, spheres, spirals); 3) <em>Fungi</em> (thin hyphae, includes yeast & mould); 4) <em>Algae</em> (float in freshwater/oceans).',
+          '<strong>Roles in Nature & Food:</strong> Algae are <em>producers</em> (make food & provide energy for food chains). Fungi & bacteria are <em>decomposers</em> (recycle nutrients, make compost, purify wastewater). <em>Yeast</em> makes bread, steamed buns, pizzas, beer & wine. <em>Lactic acid bacteria</em> make cheese, yoghurt & probiotic drinks.',
+          '<strong>Harmful Effects & Pathogens:</strong> Break down food, clothing, leather & wood; cause food spoilage, wall mould, and plant diseases. Harmful pathogens: <em>Varicella-zoster virus</em> (chickenpox/shingles), <em>Pneumococcus bacteria</em> (pneumonia, otitis media, meningitis), <em>Trichophyton fungus</em> (tinea & fungal nail infections).',
+          '<strong>Probiotics & Antibiotics:</strong> <em>Bifidobacteria</em> is a helpful intestinal probiotic inhibiting harmful bacteria. <em>Antibiotics</em> only treat bacterial infections (must be doctor-prescribed; complete full course in specified amount to prevent drug-resistant bacteria).'
+        ]
+      }
+    ];
+
+    function openStudyModal(filterChapterId = 'all') {
+      playSound('click');
+      const modal = document.getElementById('study-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      renderStudyModalContent(filterChapterId);
+    }
+
+    function closeStudyModal() {
+      playSound('click');
+      const modal = document.getElementById('study-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function renderStudyModalContent(activeFilter) {
+      const tabsEl = document.getElementById('study-filter-tabs');
+      const contentEl = document.getElementById('study-modal-content');
+
+      const tabs = [
+        { id: 'all', label: 'All Chapters (5)' },
+        ...CHAPTERS.map(c => ({ id: c.id, label: `${c.emoji} ${c.number}` }))
+      ];
+
+      tabsEl.innerHTML = tabs.map(t => `
+        <button onclick="renderStudyModalContent('${t.id}')"
+          class="px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+            activeFilter === t.id
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }">
+          ${t.label}
+        </button>
+      `).join('');
+
+      const filteredNotes = activeFilter === 'all'
+        ? STUDY_NOTES_DATA
+        : STUDY_NOTES_DATA.filter(n => n.chapterId === activeFilter);
+
+      contentEl.innerHTML = filteredNotes.map(n => {
+        const chQuestions = QUESTION_BANK.filter(q => q.chapter === n.chapterId);
+        const masteredCount = chQuestions.filter(q => progressData.masteredIds.includes(q.id)).length;
+
+        return `
+          <div class="rounded-2xl p-4 sm:p-5 border ${n.color} space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h4 class="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
+                <span class="text-2xl">${n.emoji}</span>
+                <span>${n.title}</span>
+              </h4>
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-white border border-slate-200 text-emerald-700">
+                Unlocked: ${masteredCount} / ${chQuestions.length} Clues
+              </span>
+            </div>
+            <ul class="space-y-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+              ${n.bullets.map(b => `<li class="flex items-start gap-2"><span class="text-blue-500 font-bold mt-0.5">•</span><span>${b}</span></li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // 7. MISSION INITIALIZATION & GAMEPLAY ENGINE
+    // =========================================================================
+    function startMission(modeId, customQuestionIds = null) {
+      playSound('click');
+      let pool = [];
+      let title = '';
+
+      if (modeId === 'mistakes_session' && Array.isArray(customQuestionIds)) {
+        const sessionPool = QUESTION_BANK.filter(q => customQuestionIds.includes(q.id));
+        pool = buildUniqueQuestionSession(sessionPool);
+        title = '🎯 Curiosity Replay';
+      } else if (modeId === 'mistakes_bank') {
+        const bankPool = QUESTION_BANK.filter(q => progressData.missedIds.includes(q.id));
+        if (bankPool.length === 0) {
+          renderHub();
+          return;
+        }
+        pool = buildUniqueQuestionSession(bankPool);
+        title = '🎯 Curiosity Replay Lab';
+      } else if (modeId === 'mega') {
+        if (!isMegaQuestUnlocked()) {
+          showToast('🔒', 'Clear Stages 1–5 first to unlock the Final Mega Quest!');
+          renderHub();
+          return;
+        }
+        pool = buildUniqueQuestionSession(QUESTION_BANK, 15);
+        title = '🏆 Final Mega Quest';
+      } else {
+        const chIdx = CHAPTERS.findIndex(c => c.id === modeId);
+        if (chIdx === -1) return;
+        if (!isChapterUnlocked(chIdx)) {
+          const prevCh = CHAPTERS[chIdx - 1];
+          showToast('🔒', `Clear ${prevCh.number} with at least ⭐1 first!`);
+          renderHub();
+          return;
+        }
+        const ch = CHAPTERS[chIdx];
+        const chapterPool = QUESTION_BANK.filter(q => q.chapter === modeId);
+        pool = buildUniqueQuestionSession(chapterPool);
+        title = `${ch.emoji} ${ch.number}: ${ch.title}`;
+      }
+
+      gameState = {
+        modeId,
+        modeTitle: title,
+        questions: pool,
+        currentIndex: 0,
+        score: 0,
+        streak: 0,
+        maxStreak: 0,
+        hearts: 3,
+        maxHearts: 3,
+        isLocked: false,
+        answeredCurrent: false,
+        mistakes: [],
+        missedQuestionIds: [],
+        sortAssignments: {},
+        selectedSortItem: null,
+        sequenceOrder: []
+      };
+
+      document.getElementById('home-btn').classList.remove('hidden');
+      prepareQuestionState();
+      renderQuestion();
+    }
+
+    function startMistakeBankMission() {
+      startMission('mistakes_bank');
+    }
+
+    function startSessionMistakesMission() {
+      const idsToRetry = [...gameState.missedQuestionIds];
+      if (idsToRetry.length === 0) return;
+      startMission('mistakes_session', idsToRetry);
+    }
+
+    function prepareQuestionState() {
+      const q = gameState.questions[gameState.currentIndex];
+      gameState.isLocked = false;
+      gameState.answeredCurrent = false;
+      gameState.sortAssignments = {};
+      gameState.selectedSortItem = null;
+      gameState.sequenceOrder = [];
+
+      if (q.type === 'mcq') {
+        const mappedOptions = q.options.map((text, idx) => ({
+          text,
+          isCorrect: idx === q.answer
+        }));
+        for (let i = mappedOptions.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [mappedOptions[i], mappedOptions[j]] = [mappedOptions[j], mappedOptions[i]];
+        }
+        q.options = mappedOptions.map(o => o.text);
+        q.answer = mappedOptions.findIndex(o => o.isCorrect);
+      } else if (q.type === 'sort') {
+        const itemsWithOrig = q.items.map((item, idx) => ({ ...item, origIdx: idx }));
+        for (let i = itemsWithOrig.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [itemsWithOrig[i], itemsWithOrig[j]] = [itemsWithOrig[j], itemsWithOrig[i]];
+        }
+        q._shuffledItems = itemsWithOrig;
+        gameState.selectedSortItem = 0;
+      } else if (q.type === 'sequence') {
+        const stepsWithPos = q.steps.map((text, idx) => ({ text, correctPos: idx }));
+        for (let i = stepsWithPos.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [stepsWithPos[i], stepsWithPos[j]] = [stepsWithPos[j], stepsWithPos[i]];
+        }
+        q._shuffledSteps = stepsWithPos;
+      }
+    }
+
+    function getModeBadge(type, q) {
+      switch (type) {
+        case 'mcq': return { label: '⚡ Brain-Teaser Puzzle', cls: 'bg-blue-100 text-blue-700 border-blue-200' };
+        case 'tf': return { label: '🕵️ Science Myth Buster (True / False)', cls: 'bg-purple-100 text-purple-700 border-purple-200' };
+        case 'sort': {
+          const binCount = q && q.bins ? q.bins.length : 2;
+          return { label: `🧪 ${binCount}-Bin Lab Sorter`, cls: 'bg-amber-100 text-amber-800 border-amber-200' };
+        }
+        case 'sequence': return { label: '🧬 System Pathway Tracer', cls: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+        default: return { label: 'Discovery', cls: 'bg-slate-100 text-slate-700' };
+      }
+    }
+
+    function renderQuestion() {
+      const app = document.getElementById('app-container');
+      const total = gameState.questions.length;
+      const idx = gameState.currentIndex;
+      const q = gameState.questions[idx];
+      const progressPct = Math.round((idx / total) * 100);
+      const badge = getModeBadge(q.type, q);
+      const chInfo = CHAPTERS.find(c => c.id === q.chapter);
+      const isMistakeMode = gameState.modeId === 'mistakes_session' || gameState.modeId === 'mistakes_bank';
+
+      let heartsHtml = '';
+      for (let i = 0; i < gameState.maxHearts; i++) {
+        heartsHtml += i < gameState.hearts
+          ? '<span class="text-base sm:text-xl">❤️</span>'
+          : '<span class="text-base sm:text-xl opacity-25">🖤</span>';
+      }
+
+      app.innerHTML = `
+        <div class="max-w-3xl mx-auto space-y-4 animate-pop">
+          <!-- HUD Bar -->
+          <div class="bg-white rounded-2xl p-3.5 sm:p-4 game-card border ${isMistakeMode ? 'border-rose-200 ring-2 ring-rose-100' : 'border-slate-100'} space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
+              <div class="flex flex-wrap items-center gap-2 max-w-full sm:max-w-[62%]">
+                <span class="font-bold text-slate-700 truncate">${gameState.modeTitle}</span>
+                ${isMistakeMode ? '<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold shrink-0">🎯 Curiosity Replay</span>' : ''}
+              </div>
+              <div class="flex items-center gap-2 sm:gap-3">
+                <div class="flex items-center gap-1 bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-0.5 rounded-full font-bold text-xs">
+                  🔥 <span>${gameState.streak}x</span>
+                </div>
+                <div class="flex items-center gap-1 bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-0.5 rounded-full font-bold text-xs">
+                  💎 <span id="hud-score">${gameState.score}</span>
+                </div>
+                <div class="flex items-center gap-0.5" title="Curiosity Energy">
+                  ${heartsHtml}
+                </div>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="flex items-center gap-3">
+              <div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
+                <div class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-300" style="width: ${progressPct}%"></div>
+              </div>
+              <span class="text-xs font-bold text-slate-500 shrink-0">Clue ${idx + 1} / ${total}</span>
+            </div>
+          </div>
+
+          <!-- Question Card -->
+          <div id="question-card" class="bg-white rounded-3xl p-4 sm:p-7 game-card border border-slate-100 space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${badge.cls}">
+                ${badge.label}
+              </span>
+              <span class="text-xs font-semibold text-slate-400">
+                ${chInfo ? `${chInfo.number} • ${chInfo.title}` : ''}
+              </span>
+            </div>
+
+            <h3 class="text-base sm:text-xl font-bold text-slate-800 leading-snug">
+              ${q.prompt}
+            </h3>
+
+            <!-- Interactive Body -->
+            <div id="interactive-area">
+              ${renderInteractiveBody(q)}
+            </div>
+
+            <!-- Feedback Banner (Hidden until answered) -->
+            <div id="feedback-area" class="hidden rounded-2xl p-4 sm:p-5 border transition-all"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderInteractiveBody(q) {
+      if (q.type === 'mcq') {
+        const letters = ['A', 'B', 'C', 'D'];
+        return `
+          <div class="grid grid-cols-1 gap-3">
+            ${q.options.map((opt, i) => `
+              <button id="mcq-opt-${i}" onclick="handleMcqAnswer(${i})"
+                class="btn-3d w-full text-left p-3.5 sm:p-4 rounded-2xl bg-slate-50 hover:bg-blue-50 border-2 border-slate-200 hover:border-blue-400 transition flex items-center gap-3 group">
+                <span class="w-8 h-8 rounded-xl bg-white border border-slate-200 group-hover:border-blue-400 group-hover:text-blue-600 flex items-center justify-center font-bold text-sm text-slate-600 shrink-0">
+                  ${letters[i]}
+                </span>
+                <span class="text-sm sm:text-base font-medium text-slate-800 leading-snug">${opt}</span>
+              </button>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      if (q.type === 'tf') {
+        return `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+            <button id="tf-true" onclick="handleTfAnswer(true)"
+              class="btn-3d p-5 sm:p-6 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-300 text-emerald-800 flex flex-col items-center justify-center gap-1.5 transition">
+              <span class="text-3xl sm:text-4xl">✅</span>
+              <span class="font-display font-bold text-xl">TRUE</span>
+              <span class="text-xs text-emerald-600">Scientifically Accurate</span>
+            </button>
+            <button id="tf-false" onclick="handleTfAnswer(false)"
+              class="btn-3d p-5 sm:p-6 rounded-2xl bg-rose-50 hover:bg-rose-100 border-2 border-rose-300 text-rose-800 flex flex-col items-center justify-center gap-1.5 transition">
+              <span class="text-3xl sm:text-4xl">❌</span>
+              <span class="font-display font-bold text-xl">FALSE</span>
+              <span class="text-xs text-rose-600">Science Myth!</span>
+            </button>
+          </div>
+        `;
+      }
+
+      if (q.type === 'sort') {
+        const items = q._shuffledItems;
+        const allAssigned = Object.keys(gameState.sortAssignments).length === items.length;
+        const binGridClass = q.bins.length >= 3
+          ? 'grid-cols-1 sm:grid-cols-2'
+          : 'grid-cols-1 sm:grid-cols-2';
+
+        const binThemes = [
+          'bg-indigo-50/60 border-indigo-200 hover:border-indigo-400',
+          'bg-teal-50/60 border-teal-200 hover:border-teal-400',
+          'bg-amber-50/60 border-amber-200 hover:border-amber-400',
+          'bg-purple-50/60 border-purple-200 hover:border-purple-400'
+        ];
+
+        return `
+          <div class="space-y-4">
+            <p class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/70">
+              👆 <strong>How to play:</strong> Tap an item chip to highlight it, then tap the matching bin below. Tap any placed item inside a bin to remove it!
+            </p>
+
+            <!-- Unassigned Items Pool -->
+            <div class="flex flex-wrap gap-2 min-h-[52px] p-3 rounded-2xl bg-slate-50 border border-dashed border-slate-300">
+              ${items.map((item, idx) => {
+                if (gameState.sortAssignments[idx] !== undefined) return '';
+                const isSelected = gameState.selectedSortItem === idx;
+                return `
+                  <button onclick="selectSortItem(${idx})" ${gameState.answeredCurrent ? 'disabled' : ''}
+                    class="touch-target px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition border-2 text-left ${
+                      isSelected
+                        ? 'bg-blue-600 text-white border-blue-700 shadow-md scale-[1.02]'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'
+                    }">
+                    ${item.text}
+                  </button>
+                `;
+              }).join('') || '<span class="text-xs text-slate-400 italic self-center">All items placed! Click "Check Sorted Bins" below.</span>'}
+            </div>
+
+            <!-- Category Bins (2, 3, or 4 Bins) -->
+            <div class="grid ${binGridClass} gap-3">
+              ${q.bins.map((binName, bIdx) => {
+                const binItems = items
+                  .map((item, idx) => ({ item, idx }))
+                  .filter(entry => gameState.sortAssignments[entry.idx] === bIdx);
+
+                return `
+                  <div onclick="assignToBin(${bIdx})"
+                    class="cursor-pointer rounded-2xl p-3.5 border-2 transition min-h-[120px] flex flex-col ${binThemes[bIdx % binThemes.length]}">
+                    <div class="font-display font-bold text-sm text-slate-800 pb-2 mb-2 border-b border-slate-200/80 flex items-center justify-between gap-1">
+                      <span>${binName}</span>
+                      <span class="text-[11px] font-sans font-normal text-slate-500 shrink-0">Tap to drop</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                      ${binItems.map(({ item, idx }) => `
+                        <button type="button" onclick="event.stopPropagation(); unassignSortItem(${idx})"
+                          ${gameState.answeredCurrent ? 'disabled' : ''}
+                          title="Tap to return to pool"
+                          class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 shadow-2xs hover:bg-rose-50 hover:border-rose-300 text-left">
+                          <span>${item.text}</span>
+                          ${!gameState.answeredCurrent ? '<span class="text-rose-400 font-bold text-[11px]">✕</span>' : ''}
+                        </button>
+                      `).join('')}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            ${!gameState.answeredCurrent ? `
+              <button onclick="checkSortAnswer()" ${!allAssigned ? 'disabled' : ''}
+                class="btn-3d w-full py-3 rounded-xl font-bold text-sm sm:text-base transition ${
+                  allAssigned
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-800'
+                    : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'
+                }">
+                ${allAssigned ? 'Check Sorted Bins ✓' : `Sort all ${items.length} items to submit`}
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      if (q.type === 'sequence') {
+        const steps = q._shuffledSteps;
+        const allPicked = gameState.sequenceOrder.length === steps.length;
+
+        return `
+          <div class="space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200/70">
+              <span>👆 Tap steps from <strong>1st to Last</strong>. Tap any numbered step again to undo/remove it!</span>
+              ${gameState.sequenceOrder.length > 0 && !gameState.answeredCurrent ? `
+                <button onclick="resetSequence()" class="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-700 font-bold hover:bg-rose-200 transition">
+                  Clear All
+                </button>
+              ` : ''}
+            </div>
+
+            <div class="space-y-2.5">
+              ${steps.map((stepObj, sIdx) => {
+                const pickedRank = gameState.sequenceOrder.indexOf(sIdx);
+                const isPicked = pickedRank !== -1;
+                return `
+                  <button onclick="toggleSequenceStep(${sIdx})" ${gameState.answeredCurrent ? 'disabled' : ''}
+                    class="touch-target w-full text-left p-3.5 rounded-xl border-2 transition flex items-center justify-between gap-3 ${
+                      isPicked
+                        ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-semibold'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                    }">
+                    <div class="flex items-center gap-3">
+                      <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                        isPicked ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500 border border-slate-300'
+                      }">
+                        ${isPicked ? pickedRank + 1 : '?'}
+                      </span>
+                      <span class="text-xs sm:text-sm leading-snug">${stepObj.text}</span>
+                    </div>
+                    ${isPicked && !gameState.answeredCurrent ? '<span class="text-[11px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md shrink-0">Undo</span>' : ''}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+
+            ${!gameState.answeredCurrent ? `
+              <button onclick="checkSequenceAnswer()" ${!allPicked ? 'disabled' : ''}
+                class="btn-3d w-full py-3 rounded-xl font-bold text-sm sm:text-base transition ${
+                  allPicked
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-800'
+                    : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'
+                }">
+                ${allPicked ? 'Submit Order ✓' : `Select all ${steps.length} steps in order (${gameState.sequenceOrder.length}/${steps.length})`}
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }
+      return '';
+    }
+
+    // =========================================================================
+    // 8. INTERACTION HANDLERS (Strictly Guarded by `gameState.isLocked`)
+    // =========================================================================
+    function handleMcqAnswer(selectedIdx) {
+      if (gameState.isLocked || gameState.answeredCurrent) return;
+      gameState.isLocked = true;
+
+      const q = gameState.questions[gameState.currentIndex];
+      const isCorrect = selectedIdx === q.answer;
+
+      q.options.forEach((_, i) => {
+        const btn = document.getElementById(`mcq-opt-${i}`);
+        if (!btn) return;
+        btn.disabled = true;
+        if (i === q.answer) {
+          btn.className = 'w-full text-left p-3.5 sm:p-4 rounded-2xl bg-emerald-100 border-2 border-emerald-500 flex items-center gap-3 font-semibold text-emerald-950';
+        } else if (i === selectedIdx && !isCorrect) {
+          btn.className = 'w-full text-left p-3.5 sm:p-4 rounded-2xl bg-rose-100 border-2 border-rose-500 flex items-center gap-3 text-rose-950';
+        } else {
+          btn.className = 'w-full text-left p-3.5 sm:p-4 rounded-2xl bg-slate-50 border-2 border-slate-200 opacity-50 flex items-center gap-3';
+        }
+      });
+
+      finalizeQuestion(isCorrect, q.options[selectedIdx], q.options[q.answer]);
+    }
+
+    function handleTfAnswer(choice) {
+      if (gameState.isLocked || gameState.answeredCurrent) return;
+      gameState.isLocked = true;
+
+      const q = gameState.questions[gameState.currentIndex];
+      const isCorrect = choice === q.answer;
+
+      const trueBtn = document.getElementById('tf-true');
+      const falseBtn = document.getElementById('tf-false');
+      if (trueBtn) trueBtn.disabled = true;
+      if (falseBtn) falseBtn.disabled = true;
+
+      if (q.answer === true) {
+        if (trueBtn) trueBtn.classList.add('ring-4', 'ring-emerald-400');
+        if (falseBtn) falseBtn.classList.add('opacity-40');
+      } else {
+        if (falseBtn) falseBtn.classList.add('ring-4', 'ring-emerald-400');
+        if (trueBtn) trueBtn.classList.add('opacity-40');
+      }
+
+      finalizeQuestion(isCorrect, choice ? 'True' : 'False', q.answer ? 'True' : 'False');
+    }
+
+    // --- Sorting Challenge Handlers ---
+    function selectSortItem(idx) {
+      if (gameState.isLocked || gameState.answeredCurrent) return;
+      playSound('click');
+      gameState.selectedSortItem = idx;
+      refreshInteractiveArea();
+    }
+
+    function assignToBin(binIdx) {
+      if (gameState.isLocked || gameState.answeredCurrent) return;
+      const q = gameState.questions[gameState.currentIndex];
+      if (gameState.selectedSortItem === null) {
+        const nextIdx = q._shuffledItems.findIndex((_, idx) => gameState.sortAssignments[idx] === undefined);
+        if (nextIdx === -1) return;
+        gameState.selectedSortItem = nextIdx;
+      }
+      playSound('click');
+      gameState.sortAssignments[gameState.selectedSortItem] = binIdx;
+      const nextUnassigned = q._shuffledItems.findIndex((_, idx) => gameState.sortAssignments[idx] === undefined);
+      gameState.selectedSortItem = nextUnassigned !== -1 ? nextUnassigned : null;
+      refreshInteractiveArea();
+    }
+
+    function unassignSortItem(idx) {
+      if (gameState.isLocked || gameState.answeredCurrent) return;
+      playSound('click');
+      delete gameState.sortAssignments[idx];
+      gameState.selectedSortItem = idx;
+      refreshInteractiveArea();
+    }
+
+    function checkSortAnswer() {
+      if (gameState.isLocked || gameState.answeredCurrent) return;
+      const q = gameState.questions[gameState.currentIndex];
+      if (Object.keys(gameState.sortAssignments).length !== q._shuffledItems.length) return;
+      gameState.isLocked = true;
+
+      let correctCount = 0;
+      const wrongItems = [];
+
+      q._shuffledItems.forEach((item, idx) => {
+        const chosenBin = gameState.sortAssignments[idx];
+        if (chosenBin === item.bin) {
+          correctCount++;
+        } else {
+          wrongItems.push(`${item.text} → belongs in "${q.bins[item.bin]}"`);
+        }
+      });
+
+      const isAllCorrect = correctCount === q._shuffledItems.length;
+      const correctSummary = q.bins.map((b, bIdx) =>
+        `${b}: ${q.items.filter(it => it.bin === bIdx).map(it => it.text).join(', ')}`
+      ).join(' | ');
+
+      refreshInteractiveArea(true);
+      finalizeQuestion(
+        isAllCorrect,
+        isAllCorrect ? 'All items sorted accurately!' : `Misplaced: ${wrongItems.join('; ')}`,
+        correctSummary
+      );
+    }
+
+    // --- Sequence Pathway Handlers ---
+    function toggleSequenceStep(sIdx) {
+      if (gameState.isLocked || gameState.answeredCurrent) return;
+      playSound('click');
+      const existingPos = gameState.sequenceOrder.indexOf(sIdx);
+      if (existingPos !== -1) {
+        gameState.sequenceOrder.splice(existingPos, 1);
+      } else {
+        gameState.sequenceOrder.push(sIdx);
+      }
+      refreshInteractiveArea();
+    }
+
+    function resetSequence() {
+      if (gameState.isLocked || gameState.answeredCurrent) return;
+      playSound('click');
+      gameState.sequenceOrder = [];
+      refreshInteractiveArea();
+    }
+
+    function checkSequenceAnswer() {
+      if (gameState.isLocked || gameState.answeredCurrent) return;
+      const q = gameState.questions[gameState.currentIndex];
+      if (gameState.sequenceOrder.length !== q._shuffledSteps.length) return;
+      gameState.isLocked = true;
+
+      const userSteps = gameState.sequenceOrder.map(sIdx => q._shuffledSteps[sIdx]);
+      const isCorrect = userSteps.every((stepObj, orderIdx) => stepObj.correctPos === orderIdx);
+
+      refreshInteractiveArea(true);
+      finalizeQuestion(
+        isCorrect,
+        userSteps.map(s => s.text).join(' → '),
+        q.steps.join(' → ')
+      );
+    }
+
+    function refreshInteractiveArea(lockAfter = false) {
+      if (lockAfter) gameState.answeredCurrent = true;
+      const q = gameState.questions[gameState.currentIndex];
+      const area = document.getElementById('interactive-area');
+      if (area) area.innerHTML = renderInteractiveBody(q);
+    }
+
+    // =========================================================================
+    // 9. SCORING, MASTERY TRACKING & FEEDBACK
+    // =========================================================================
+    function finalizeQuestion(isCorrect, userAnswerText, correctAnswerText) {
+      gameState.answeredCurrent = true;
+      const q = gameState.questions[gameState.currentIndex];
+      const card = document.getElementById('question-card');
+      const feedback = document.getElementById('feedback-area');
+
+      if (isCorrect) {
+        playSound('correct');
+        recordMasteredQuestion(q.id);
+        gameState.streak += 1;
+        if (gameState.streak > gameState.maxStreak) gameState.maxStreak = gameState.streak;
+        const bonus = Math.min(gameState.streak * 20, 100);
+        gameState.score += 100 + bonus;
+        const scoreEl = document.getElementById('hud-score');
+        if (scoreEl) scoreEl.textContent = gameState.score;
+
+        feedback.className = 'rounded-2xl p-4 sm:p-5 border-2 bg-emerald-50 border-emerald-300 text-emerald-950 animate-pop space-y-3';
+        feedback.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2 font-display font-bold text-lg text-emerald-700">
+              <span>🎉</span>
+              <span>Spot On! +${100 + bonus} pts</span>
+            </div>
+            ${gameState.streak >= 2 ? `<span class="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-100 text-orange-700">🔥 ${gameState.streak} Streak!</span>` : ''}
+          </div>
+          <p class="text-sm text-emerald-900 leading-relaxed">${q.explanation}</p>
+          <button id="next-q-btn" onclick="nextQuestion()" class="btn-3d w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-800 font-bold text-sm sm:text-base">
+            ${gameState.currentIndex + 1 < gameState.questions.length ? 'Next Discovery →' : 'See Adventure Summary 🏆'}
+          </button>
+        `;
+      } else {
+        playSound('wrong');
+        recordMissedQuestion(q.id);
+        if (!gameState.missedQuestionIds.includes(q.id)) {
+          gameState.missedQuestionIds.push(q.id);
+        }
+        gameState.streak = 0;
+        gameState.hearts = Math.max(0, gameState.hearts - 1);
+        if (card) card.classList.add('animate-shake');
+
+        gameState.mistakes.push({
+          id: q.id,
+          prompt: q.prompt,
+          userAnswer: userAnswerText,
+          correctAnswer: correctAnswerText,
+          explanation: q.explanation
+        });
+
+        feedback.className = 'rounded-2xl p-4 sm:p-5 border-2 bg-rose-50 border-rose-300 text-rose-950 animate-pop space-y-3';
+        feedback.innerHTML = `
+          <div class="flex items-center gap-2 font-display font-bold text-lg text-rose-700">
+            <span>💡</span>
+            <span>Aha! Let's Check the Science Clue!</span>
+          </div>
+          <div class="text-xs sm:text-sm bg-white/85 p-3 rounded-xl border border-rose-200 space-y-1">
+            <div><strong class="text-emerald-700">Science Fact:</strong> ${correctAnswerText}</div>
+          </div>
+          <p class="text-sm text-rose-900 leading-relaxed">${q.explanation}</p>
+          <button id="next-q-btn" onclick="nextQuestion()" class="btn-3d w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white border-rose-800 font-bold text-sm sm:text-base">
+            ${gameState.currentIndex + 1 < gameState.questions.length ? 'Got It! Next Discovery →' : 'See Adventure Summary 🏆'}
+          </button>
+        `;
+      }
+    }
+
+    let isTransitioningNext = false;
+    function nextQuestion() {
+      if (isTransitioningNext) return;
+      isTransitioningNext = true;
+      const btn = document.getElementById('next-q-btn');
+      if (btn) btn.disabled = true;
+
+      playSound('click');
+      gameState.currentIndex += 1;
+      if (gameState.currentIndex < gameState.questions.length) {
+        prepareQuestionState();
+        renderQuestion();
+      } else {
+        renderSummary();
+      }
+      isTransitioningNext = false;
+    }
+
+    // =========================================================================
+    // 10. MISSION COMPLETE & MISTAKE REVIEW SUMMARY
+    // =========================================================================
+    function renderSummary() {
+      const total = gameState.questions.length;
+      const correctCount = total - gameState.mistakes.length;
+      const accuracy = Math.round((correctCount / total) * 100);
+      const isMistakeMode = gameState.modeId === 'mistakes_session' || gameState.modeId === 'mistakes_bank';
+      const sessionMissedCount = gameState.missedQuestionIds.length;
+
+      // Require >= 50% accuracy to earn 1 star and unlock the next stage!
+      let starsEarned = 0;
+      if (accuracy >= 90) starsEarned = 3;
+      else if (accuracy >= 70) starsEarned = 2;
+      else if (accuracy >= 50) starsEarned = 1;
+
+      const chIdx = CHAPTERS.findIndex(c => c.id === gameState.modeId);
+      const prevStars = chIdx !== -1 ? (progressData.stars[gameState.modeId] || 0) : 0;
+      const newlyClearedStage = chIdx !== -1 && prevStars === 0 && starsEarned >= 1;
+      const nextChapter = (chIdx !== -1 && chIdx + 1 < CHAPTERS.length) ? CHAPTERS[chIdx + 1] : null;
+      const canPlayNextStage = chIdx !== -1 && (starsEarned >= 1 || prevStars >= 1);
+
+      saveStars(gameState.modeId, starsEarned);
+      const justUnlockedMega = newlyClearedStage && isMegaQuestUnlocked();
+
+      const keys = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'mega'];
+      const totalStars = keys.reduce((acc, k) => acc + (progressData.stars[k] || 0), 0);
+      const overallMasteryPct = Math.round((progressData.masteredIds.length / QUESTION_BANK.length) * 100);
+
+      playSound('victory');
+      if (starsEarned >= 1) launchConfetti();
+
+      const app = document.getElementById('app-container');
+      app.innerHTML = `
+        <div class="max-w-3xl mx-auto space-y-6 animate-pop">
+          <div class="bg-white rounded-3xl p-6 sm:p-8 game-card border border-slate-100 text-center space-y-5">
+            <!-- Student Identity Verification Banner for Google Classroom Screenshots -->
+            <div class="flex flex-wrap items-center justify-center gap-2 bg-slate-50 border border-slate-200/90 rounded-2xl p-3">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs sm:text-sm font-bold border ${
+                hasStudentIdentity()
+                  ? 'bg-indigo-100 text-indigo-900 border-indigo-300'
+                  : 'bg-amber-100 text-amber-900 border-amber-300'
+              }">
+                <span>🪪</span>
+                <span>${escapeHtmlAttr(getFormattedStudentLabel())}</span>
+              </span>
+              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold">
+                ⭐ Total Stars: ${totalStars} / 18
+              </span>
+              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
+                🧭 Overall Mastery: ${overallMasteryPct}%
+              </span>
+            </div>
+
+            <div class="text-5xl sm:text-6xl animate-float">
+              ${isMistakeMode && sessionMissedCount === 0 ? '🎯' : starsEarned === 3 ? '🏆' : starsEarned >= 1 ? '🌟' : '🧭'}
+            </div>
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider ${isMistakeMode ? 'text-rose-600' : 'text-blue-600'}">${gameState.modeTitle}</span>
+              <h2 class="text-2xl sm:text-3xl font-bold text-slate-800 mt-1">
+                ${isMistakeMode && sessionMissedCount === 0
+                  ? 'All Tricky Clues Unlocked!'
+                  : starsEarned === 3 ? 'Super Science Explorer!'
+                  : starsEarned >= 1 ? 'Stage Cleared!'
+                  : 'Almost There — Try Again to Unlock Next Stage!'}
+              </h2>
+            </div>
+
+            <!-- Newly Unlocked Stage Celebration Banner -->
+            ${newlyClearedStage && nextChapter ? `
+              <div class="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl p-4 shadow-md animate-pop">
+                <div class="font-display font-bold text-lg">🎉 New Stage Unlocked!</div>
+                <div class="text-xs sm:text-sm text-emerald-50 mt-0.5">
+                  You unlocked <strong>${nextChapter.emoji} ${nextChapter.number}: ${nextChapter.title}</strong>!
+                </div>
+              </div>
+            ` : ''}
+
+            ${justUnlockedMega ? `
+              <div class="bg-gradient-to-r from-indigo-600 to-blue-500 text-white rounded-2xl p-4 shadow-md animate-pop">
+                <div class="font-display font-bold text-lg">🏆 Final Mega Quest Unlocked!</div>
+                <div class="text-xs sm:text-sm text-blue-100 mt-0.5">
+                  All 5 stages cleared! The 15-puzzle All-Chapters Mega Quest is now open!
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Earned Stars or Replay Badge -->
+            ${isMistakeMode ? `
+              <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold ${
+                sessionMissedCount === 0
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                  : 'bg-rose-100 text-rose-800 border border-rose-300'
+              }">
+                ${sessionMissedCount === 0
+                  ? `✅ Unlocked all ${total} science clue${total > 1 ? 's' : ''}!`
+                  : `📌 ${sessionMissedCount} clue${sessionMissedCount > 1 ? 's' : ''} ready for another try`}
+              </div>
+            ` : `
+              <div class="space-y-1">
+                <div class="text-4xl tracking-widest py-1">
+                  ${renderStarIcons(starsEarned)}
+                </div>
+                ${starsEarned === 0 ? `
+                  <p class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 inline-block px-3 py-1 rounded-full">
+                    Reach 50% Clues Solved to earn ⭐1 and unlock the next stage!
+                  </p>
+                ` : ''}
+              </div>
+            `}
+
+            <!-- Stats Row -->
+            <div class="grid grid-cols-3 gap-2.5 sm:gap-3 max-w-md mx-auto">
+              <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-3">
+                <div class="text-xs text-indigo-500 font-semibold">Discovery Pts</div>
+                <div class="font-display font-bold text-lg sm:text-xl text-indigo-700">${gameState.score}</div>
+              </div>
+              <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-3">
+                <div class="text-xs text-emerald-600 font-semibold">Clues Solved</div>
+                <div class="font-display font-bold text-lg sm:text-xl text-emerald-700">${accuracy}%</div>
+              </div>
+              <div class="bg-orange-50 border border-orange-100 rounded-2xl p-3">
+                <div class="text-xs text-orange-600 font-semibold">Best Streak</div>
+                <div class="font-display font-bold text-lg sm:text-xl text-orange-700">${gameState.maxStreak}x</div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row flex-wrap gap-3 justify-center pt-2">
+              ${canPlayNextStage && nextChapter ? `
+                <button onclick="startMission('${nextChapter.id}')" class="btn-3d px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-800 font-bold text-sm sm:text-base shadow-md">
+                  Next Stage: ${nextChapter.emoji} Stage ${nextChapter.stageNum} ➡️
+                </button>
+              ` : ''}
+              ${canPlayNextStage && !nextChapter && isMegaQuestUnlocked() ? `
+                <button onclick="startMission('mega')" class="btn-3d px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-800 font-bold text-sm sm:text-base shadow-md">
+                  🏆 Play Final Mega Quest ➡️
+                </button>
+              ` : ''}
+              ${sessionMissedCount > 0 ? `
+                <button onclick="startSessionMistakesMission()" class="btn-3d px-6 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white border-rose-800 font-bold text-sm sm:text-base shadow-md">
+                  🎯 Replay Tricky Clues (${sessionMissedCount})
+                </button>
+              ` : ''}
+              ${!isMistakeMode ? `
+                <button onclick="startMission('${gameState.modeId}')" class="btn-3d px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white border-blue-800 font-bold text-sm sm:text-base">
+                  🔄 Replay This Stage
+                </button>
+              ` : ''}
+              <button onclick="renderHub()" class="btn-3d px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border-slate-950 font-bold text-sm sm:text-base">
+                🏕️ Back to Base Camp
+              </button>
+            </div>
+          </div>
+
+          <!-- Revision Spotlight Section -->
+          ${gameState.mistakes.length > 0 ? `
+            <div class="bg-white rounded-3xl p-5 sm:p-6 game-card border border-rose-100 space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <span>🔭</span>
+                  <span>Revision Spotlight (${gameState.mistakes.length} Clues to Re-Explore)</span>
+                </h3>
+                <button onclick="startSessionMistakesMission()" class="px-3.5 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-xs transition">
+                  🎯 Replay These ${gameState.mistakes.length} Now →
+                </button>
+              </div>
+              <div class="space-y-3">
+                ${gameState.mistakes.map((m, i) => `
+                  <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-sm">
+                    <div class="font-bold text-slate-800">${i + 1}. ${m.prompt}</div>
+                    <div class="text-xs text-rose-600"><strong>Your pick:</strong> ${m.userAnswer}</div>
+                    <div class="text-xs text-emerald-700"><strong>Science fact:</strong> ${m.correctAnswer}</div>
+                    <div class="text-xs text-slate-600 bg-white p-2.5 rounded-xl border border-slate-200/80">
+                      💡 ${m.explanation}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : `
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center text-emerald-800 font-semibold text-sm">
+              🌟 Amazing expedition! You unlocked every single science secret!
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 11. RESPONSIVE CONFETTI ANIMATION
+    // =========================================================================
+    let confettiAnimId = null;
+    function launchConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+      const pieces = Array.from({ length: 85 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        w: Math.random() * 9 + 5,
+        h: Math.random() * 5 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vy: Math.random() * 3 + 2,
+        vx: (Math.random() - 0.5) * 2,
+        rot: Math.random() * 360,
+        vRot: (Math.random() - 0.5) * 8
+      }));
+
+      let frames = 0;
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach(p => {
+          p.y += p.vy;
+          p.x += p.vx;
+          p.rot += p.vRot;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+        });
+        frames++;
+        if (frames < 180) {
+          confettiAnimId = requestAnimationFrame(draw);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      stopConfetti();
+      draw();
+    }
+
+    function stopConfetti() {
+      if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+      const canvas = document.getElementById('confetti-canvas');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    window.addEventListener('resize', () => {
+      const canvas = document.getElementById('confetti-canvas');
+      if (canvas) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+    });
+
+    // Boot application
+    window.onload = function () {
+      loadProgress();
+      renderHub();
+    };
+  </script>
+</body>
+</html>
